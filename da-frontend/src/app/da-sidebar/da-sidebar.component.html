@@ -1,0 +1,5 @@
+<div class="content">
+    <div class="table" *ngFor="let table of tables" (click)="select(table)" [ngClass]="{'selected': table==selectedTable}">
+        {{table}}
+    </div>
+</div>

@@ -1,0 +1,22 @@
+/* You can add global styles to this file, and also import other style files */
+
+html, body, app-root {
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+// body {
+//     display: flex;
+//     flex-direction: column;
+// }
+
+app-root {
+    display: flex;
+    flex-direction: column;
+    height: 100hv;
+    max-height: 100hv;
+    min-height: 100hv;
+}

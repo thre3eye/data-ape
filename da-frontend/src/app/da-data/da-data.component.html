@@ -1,0 +1,15 @@
+<div class="content">
+    <table *ngIf="data" class="fixed_headers">
+        <thead>
+            <tr>
+                <th *ngFor="let header of data?.headers">{{header}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index" (click)="select(j)">
+                <td *ngFor="let header of data?.headers; let i = index" class="{{getStyleClass(i)}}">{{data |
+                    daData:i:j}}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

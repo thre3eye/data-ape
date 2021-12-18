@@ -1,0 +1,22 @@
+.content {
+    // overflow-wrap: break-word;
+    overflow-y: auto;
+
+    .table {
+        // padding-left: 3pt;
+        padding: 1pt 3pt;
+        cursor: pointer;
+
+        &:nth-child(even) {
+            background-color: rgb(242, 242, 242);
+        }
+        &:nth-child(odd) {
+            background-color: rgb(235, 235, 235);
+        }
+    }
+
+    .selected {
+        font-weight: bold;
+        color: rgb(0, 140, 255);
+    }
+}

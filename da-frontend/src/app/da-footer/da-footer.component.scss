@@ -1,0 +1,39 @@
+:host {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+.content {
+    width: 100%;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .pagination {
+        width: 500pt;
+        display: grid;
+        grid-template-columns: 30pt 30pt 30pt auto 60pt 30pt 1fr;
+        column-gap: 10pt;
+
+        .total-key {
+     //       grid-column: 1;
+        }
+        .total-val {
+      //      grid-column: 2;
+            text-align: right;
+        }
+        .page-key {
+    //        grid-column: 3;
+        }
+        .page-val {
+    //        grid-column: 4;
+            text-align: right;
+        }
+        .page-inp, .page-size-inp {
+            width: 40pt;
+            text-align: center;
+        }
+    }
+}

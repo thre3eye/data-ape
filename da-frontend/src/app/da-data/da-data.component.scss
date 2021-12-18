@@ -1,0 +1,61 @@
+:host {
+    //   flex: 1 1 auto;
+    display: flex;
+    height: 100%;
+    //   position: relative;
+    //  top: 0;
+    //   bottom: 0;
+}
+
+.content {
+    width: 100%;
+    //    height: 100hv;
+    overflow: auto;
+    //  overflow-x: scroll;
+    //   flex: 1;
+    //   display: flexbox;
+
+    table {
+        width: max-content;
+    }
+
+    .fixed_headers thead th {
+        position: sticky;
+        top: 0; /* REQUIRED: https://stackoverflow.com/a/43707215 */
+        //   background-color: #333;
+        resize: horizontal;
+        overflow: auto;
+        min-width: 70px;
+        background: rgb(157, 187, 214);
+    }
+
+    td, th {
+        padding: 0pt 4pt;
+    }
+    //   }
+    tr {
+        &:nth-child(even) {
+            background-color: rgb(242, 242, 242);
+        }
+        &:nth-child(odd) {
+            background-color: rgb(236, 236, 236);
+        }
+    }
+
+    .ArrayList, .Document {
+        max-width: 100pt;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .Double {
+        text-align: right;
+    }
+    .Integer, .Long {
+        text-align: right;
+    }
+    .String {
+        text-align: left;
+    }
+}
