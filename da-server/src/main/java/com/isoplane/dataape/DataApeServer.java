@@ -39,8 +39,6 @@ public class DataApeServer {
     private MongoDriver _mongo;
 
     public static void main(String[] args_) {
-        System.out.println("Hello World!");
-
         DataApeServer server = new DataApeServer();
         server.init(args_[0], true);
         server.serve();

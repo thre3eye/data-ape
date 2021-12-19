@@ -27,6 +27,10 @@
 
     <!-- test -->
     <junit-jupiter-engine.version>5.8.2</junit-jupiter-engine.version> <!-- 5.8.1 -->
+
+    <!-- plugins -->
+    <jib-maven-plugin.version>3.1.4</jib-maven-plugin.version>
+    <maven-assembly-plugin.version>3.2.0</maven-assembly-plugin.version>
   </properties>
 
   <dependencies>
@@ -124,5 +128,90 @@
         </plugin>
       </plugins>
     </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>${maven-assembly-plugin.version}</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+							<archive>
+								<manifest>
+									<mainClass>com.isoplane.dataape.DataApeServer</mainClass>
+								</manifest>
+							</archive>
+              <descriptorRefs>
+                <descriptorRef>jar-with-dependencies</descriptorRef>
+              </descriptorRefs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <version>${jib-maven-plugin.version}</version>
+        <configuration>
+          <allowInsecureRegistries>true</allowInsecureRegistries>
+          <from>
+            <image>openjdk:18-alpine</image>
+          </from>
+          <to>
+            <!-- <image>localhost:2375/${project.artifactId}</image> -->
+            <!-- optional: create a tag based on the git commit id (via the git-commit-id plugin): -->
+            <!-- <tags>
+                <tag>${git.commit.id}</tag>
+              </tags> -->
+          </to>
+          <extraDirectories>
+						<paths>
+							<path>
+								<from>../da-frontend/dist/data-ape</from>
+								<into>/web-root</into>
+							</path>
+						</paths>
+					</extraDirectories>
+          <outputPaths>
+            <tar>target/${project.artifactId}.docker.tar</tar>
+          </outputPaths>
+          <container>
+            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+            <jvmFlags>
+              <jvmFlag>-server</jvmFlag>
+              <jvmFlag>-DdataapePath=/docker-data/data-ape</jvmFlag>
+              <jvmFlag>-Dlogback.configurationFile=/docker-data/data-ape/config/da-logback.xml</jvmFlag>
+            </jvmFlags>
+            <mainClass>com.isoplane.dataape.DataApeServer</mainClass>
+            <args>
+              <arg>/docker-data/data-ape/config/NOCHECKIN_da.properties,/docker-data/data-ape/config/da.properties</arg>
+              <arg>80</arg>
+            </args>
+            <ports>
+              <port>80</port>
+            </ports>
+          </container>
+        </configuration>
+        <executions>
+          <execution>
+            <id>build-and-push-docker-image</id>
+            <phase>package</phase>
+            <goals>
+              <goal>buildTar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+
+
   </build>
+
 </project>
