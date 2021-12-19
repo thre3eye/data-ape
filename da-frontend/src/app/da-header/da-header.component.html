@@ -40,7 +40,7 @@
             </select>
         </div>
         <div class="sort-op">
-            <select *ngIf="sortKey != '__none__'" [(ngModel)]="sortOp">
+            <select *ngIf="sortKey != '__none__'" [(ngModel)]="sortDir">
                 <option *ngFor="let op of sortOperators" value={{op[1]}}>
                     {{op[0]}}
                 </option>

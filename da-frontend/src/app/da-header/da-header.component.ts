@@ -15,7 +15,7 @@ export class DaHeaderComponent implements OnInit {
   public selectOp: string = 'eq';
   public selectVal?: string;
   public sortKey: string = '__none__';
-  public sortOp: string = 'asc';
+  public sortDir: string = '1';
 
   public findOperators: string[][] = [
     ['>', 'gt'],
@@ -24,12 +24,12 @@ export class DaHeaderComponent implements OnInit {
     ['<=', 'lte'],
     ['<', 'lt'],
     ['starts', 'stw'],
-    ['contains', 'cnt']
+    ['contains', 'ctn']
   ];
 
   public sortOperators: string[][] = [
-    ['asc', 'asc'],
-    ['desc', 'desc']
+    ['asc', '1'],
+    ['desc', '-1']
   ];
 
   constructor(
@@ -67,18 +67,18 @@ export class DaHeaderComponent implements OnInit {
     this.log.log(`Select val: ${this.selectVal}`);
 
     this.log.log(`Sort   key:  ${this.sortKey}`);
-    this.log.log(`Sort   op :  ${this.sortOp}`);
+    this.log.log(`Sort   dir:  ${this.sortDir}`);
 
-    let isSelect = !this.selectKey || '__all__' === this.selectKey;
+    let isSelect = !this.selectKey || '__all__' !== this.selectKey;
     let selectKey = isSelect ? this.selectKey : undefined;
     let selectOp = isSelect ? this.selectOp : undefined;
     let selectVal = isSelect ? this.selectVal : undefined;
     this.mongoDb.setSelect(selectKey, selectOp, selectVal);
 
-    let isSort = !this.sortKey || '__none__' == this.sortKey;
+    let isSort = !this.sortKey || '__none__' !== this.sortKey;
     let sortKey = isSort ? this.sortKey : undefined;
-    let sortOp = isSort ? this.sortOp : undefined;
-    this.mongoDb.setSort(sortKey, sortOp);
+    let sortDir = isSort ? this.sortDir : undefined;
+    this.mongoDb.setSort(sortKey, sortDir);
 
     this.mongoDb.getTableData(this.data.table);
   }

@@ -16,7 +16,7 @@ export class DaMongoService {
   private selectOp?: string;
   private selectVal?: string;
   private sortKey?: string;
-  private sortOp?: string;
+  private sortDir?: string;
 
   constructor(private http: HttpClient) {
     this.connect();
@@ -37,14 +37,17 @@ export class DaMongoService {
     let params = new HttpParams();
     params = params.set('page', this.page);
     params = params.set('page_size', this.pageSize);
-    params = params.set('sort', 'ts_trd');
-    params = params.set('sort_dir', -1);
     params = params.set('count_total', true);
     if (this.selectKey && this.selectOp && this.selectVal) {
       params = params.set('select_key', this.selectKey);
       params = params.set('select_op', this.selectOp);
       params = params.set('select_val', this.selectVal);
     }
+    if (this.sortKey && this.sortDir) {
+      params = params.set('sort_key', this.sortKey);
+      params = params.set('sort_dir', this.sortDir);
+    }
+
     let response = this.http.get<TableDescriptionWrapper>(`http://localhost:4100/data/at/${table_}`, { params: params });
 
     response.subscribe(data_ => this.data.next(data_?.data));
@@ -71,13 +74,13 @@ export class DaMongoService {
     }
   }
 
-  public setSort(key_?: string, op_?: string): void {
+  public setSort(key_?: string, dir_?: string): void {
     if (!key_) {
       this.sortKey = undefined;
-      this.sortOp = undefined;
+      this.sortDir = undefined;
     } else {
       this.sortKey = key_;
-      this.sortOp = op_;
+      this.sortDir = dir_;
     }
   }
 

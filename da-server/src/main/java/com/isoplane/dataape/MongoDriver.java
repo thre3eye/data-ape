@@ -1,5 +1,13 @@
 package com.isoplane.dataape;
 
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Filters.lte;
+import static com.mongodb.client.model.Filters.regex;
+//import static com.mongodb.client.model.Filters.gt;
+//import static com.mongodb.client.model.Filters.gte;
 import static com.mongodb.client.model.Sorts.ascending;
 import static com.mongodb.client.model.Sorts.descending;
 
@@ -11,15 +19,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import com.isoplane.dataape.DataApeServer.ConfigUtil;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Aggregates;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.configuration2.Configuration;
@@ -69,13 +76,42 @@ public class MongoDriver {
         boolean isCount = MapUtils.getBooleanValue(params_, "count_total", true);
         int page = MapUtils.getIntValue(params_, "page", 1);
         int pageSize = MapUtils.getIntValue(params_, "page_size", 50);
-        String sort = MapUtils.getString(params_, "sort");
+        String sortKey = MapUtils.getString(params_, "sort_key");
         int sortDir = MapUtils.getIntValue(params_, "sort_dir", -1);
+        String selectKey = MapUtils.getString(params_, "select_key");
+        String selectOp = MapUtils.getString(params_, "select_op");
+        Object selectVal = MapUtils.getObject(params_, "select_val");
 
         Map<String, List<Object>> dataTable = new HashMap<>();
         MongoDatabase db = this._mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
         Bson query = new BsonDocument();
+        if (selectKey != null) {
+            query = switch (selectOp) {
+                case "gt" -> gt(selectKey, selectVal);
+                case "gte" -> gte(selectKey, selectVal);
+                case "eq" -> eq(selectKey, selectVal);
+                case "lte" -> lte(selectKey, selectVal);
+                case "lt" -> lt(selectKey, selectVal);
+                case "stw" -> {
+                    Pattern pattern = Pattern.compile("^" + Pattern.quote(selectVal.toString()),
+                            Pattern.CASE_INSENSITIVE);
+                    yield regex(selectKey, pattern);
+                }
+                case "ctn" -> {
+                    Pattern pattern = Pattern.compile(".*" + Pattern.quote(selectVal.toString()) + ".*",
+                            Pattern.CASE_INSENSITIVE);
+                    yield regex(selectKey, pattern);
+                }
+                case "edw" -> {
+                    Pattern pattern = Pattern.compile(Pattern.quote(selectVal.toString()) + "$",
+                            Pattern.CASE_INSENSITIVE);
+                    yield regex(selectKey, pattern);
+                }
+                default -> query;
+            };
+        }
+
         long queryCount = isCount ? collection.countDocuments(query) : -1;
         //    List<Bson> aggregationQuery = new ArrayList<>();
         //  if (sort != null) {
@@ -86,8 +122,8 @@ public class MongoDriver {
         // AggregateIterable<Document> result = collection.aggregate(aggregationQuery);//.allowDiskUse(true);
 
         FindIterable<Document> documents = collection.find(query);
-        if (sort != null) {
-            documents = sortDir < 0 ? documents.sort(descending(sort)) : documents.sort(ascending(sort));
+        if (sortKey != null) {
+            documents = sortDir < 0 ? documents.sort(descending(sortKey)) : documents.sort(ascending(sortKey));
         }
         documents = documents.skip(pageSize * (page - 1)).limit(pageSize);
         //db.getCollection("collectionName").aggregate(anyList());
