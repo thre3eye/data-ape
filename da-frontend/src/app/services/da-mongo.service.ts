@@ -27,7 +27,8 @@ export class DaMongoService {
   }
 
   public getTables(): Observable<Tables> {
-    let response = this.http.get<Tables>(`http://localhost:4100/tables/at`);
+    let response = this.http.get<Tables>(`tables/at`);
+//    let response = this.http.get<Tables>(`http://localhost:4100/tables/at`);
     return response;
   }
 
@@ -48,7 +49,8 @@ export class DaMongoService {
       params = params.set('sort_dir', this.sortDir);
     }
 
-    let response = this.http.get<TableDescriptionWrapper>(`http://localhost:4100/data/at/${table_}`, { params: params });
+//    let response = this.http.get<TableDescriptionWrapper>(`http://localhost:4100/data/at/${table_}`, { params: params });
+    let response = this.http.get<TableDescriptionWrapper>(`data/at/${table_}`, { params: params });
 
     response.subscribe(data_ => this.data.next(data_?.data));
     return response;

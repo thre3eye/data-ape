@@ -191,10 +191,9 @@
             <mainClass>com.isoplane.dataape.DataApeServer</mainClass>
             <args>
               <arg>/docker-data/data-ape/config/NOCHECKIN_da.properties,/docker-data/data-ape/config/da.properties</arg>
-              <arg>80</arg>
             </args>
             <ports>
-              <port>80</port>
+              <port>4100</port>
             </ports>
           </container>
         </configuration>

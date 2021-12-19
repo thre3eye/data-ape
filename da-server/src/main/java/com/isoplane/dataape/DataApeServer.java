@@ -54,7 +54,7 @@ public class DataApeServer {
         int port = config.getInt("server.port");
         _server = Javalin.create(config_ -> {
             config_.enableCorsForAllOrigins();
-         //  config_.jsonMapper(jsonMapper);
+            //  config_.jsonMapper(jsonMapper);
             boolean isWebDebugLog = config.getBoolean("server.debug.logging", false);
             if (isWebDebugLog) {
                 config_.enableDevLogging();
@@ -64,6 +64,23 @@ public class DataApeServer {
                 files_.directory = config.getString("server.static.files");
                 files_.location = Location.EXTERNAL;
             });
+        });
+        _server.before(ctx_ -> {
+            if (log.isDebugEnabled()) {
+                var method = ctx_.method();
+                var ctxPath = ctx_.path();
+                var headers = ctx_.headerMap();
+                var ipStr = ctx_.ip();
+                try {
+                    ipStr = ctx_.req.getRemoteAddr();
+                } catch (Exception ex) {
+                    log.error("Error getting remote address", ex);
+                }
+                log.debug(String.format("Reqiest method : %s", method));
+                log.debug(String.format("Reqiest path   : %s", ctxPath));
+                log.debug(String.format("Reqiest IP     : %s", ipStr));
+                log.debug(String.format("Request headers: %s", headers));
+            }
         });
         _server.get("/tables/{database}", ctx_ -> {
             String database = ctx_.pathParam("database");

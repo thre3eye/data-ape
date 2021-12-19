@@ -28,7 +28,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.isoplane" level="INFO" />
+    <logger name="com.isoplane" level="DEBUG" />
     <logger name="io.grpc.netty" level="INFO" />
     <logger name="org.eclipse" level="INFO" />
     <logger name="org.apache" level="INFO" />
