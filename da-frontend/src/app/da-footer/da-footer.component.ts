@@ -29,7 +29,7 @@ export class DaFooterComponent implements OnInit {
     });
   }
 
-  public setPageAndSize(): void {
+  public setPaging(): void {
     this.log.log(`page: ${this.page}`);
     if (this.page < 1) {
       this.page = 1;
@@ -37,7 +37,7 @@ export class DaFooterComponent implements OnInit {
       this.page = this.pageCount;
     }
     //   this.page = this.pageSize;
-    this.mongoDb.setPageAndSize(this.page, this.pageSize);
+    this.mongoDb.setPaging(this.page, this.pageSize);
   }
 
   ngOnInit(): void {

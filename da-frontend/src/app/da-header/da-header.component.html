@@ -1,1 +1,57 @@
-<p>Selected: {{selectedTable}}</p>
+<div class="content">
+    <div *ngIf="data && data.table" class="selection">
+        <div class="table-lbl">Table:</div>
+        <div class="table-val">{{data.table}}</div>
+
+        <div class="filler"></div>
+
+        <div class="find-lbl">Select:</div>
+        <div class="find-key">
+            <select [(ngModel)]="selectKey">
+                <!-- (ngModelChange)="setSelectKey($event)" -->
+                <option value="__all__">--All--</option>
+                <option *ngFor="let header of data.headers" value={{header}}>
+                    {{header}}
+                </option>
+            </select>
+        </div>
+        <div class="find-op">
+            <select *ngIf="selectKey != '__all__'" [(ngModel)]="selectOp">
+                <option *ngFor="let op of findOperators" value={{op[1]}}>
+                    {{op[0]}}
+                </option>
+            </select>
+        </div>
+        <div class="find-val">
+            <input *ngIf="selectKey != '__all__'" class="find-inp" type="text" [(ngModel)]="selectVal">
+            <!-- (keyup.enter)="setSelectValue()" -->
+        </div>
+
+        <div class="filler"></div>
+
+        <div class="sort-lbl">Sort:</div>
+        <div class="sort-key">
+            <select [(ngModel)]="sortKey">
+                <!-- (ngModelChange)="setSortKey($event)" -->
+                <option value="__none__">--None--</option>
+                <option *ngFor="let header of data.headers" value={{header}}>
+                    {{header}}
+                </option>
+            </select>
+        </div>
+        <div class="sort-op">
+            <select *ngIf="sortKey != '__none__'" [(ngModel)]="sortOp">
+                <option *ngFor="let op of sortOperators" value={{op[1]}}>
+                    {{op[0]}}
+                </option>
+            </select>
+        </div>
+
+        <div class="filler"></div>
+
+        <div class="submit">
+            <button (click)="submit()">&#9752;</button>
+        </div>
+
+    </div>
+</div>

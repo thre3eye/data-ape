@@ -1,0 +1,71 @@
+:host {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+.content {
+    width: 100%;
+    overflow: auto;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    padding-left: 20pt;
+
+    .selection {
+        $filler-width: 15pt;
+        $find-key-width: 100pt;
+        $find-op-width: 55pt;
+        $find-val-width: 70pt;
+        $sort-key-width: $find-key-width;
+        $sort-op-width: $find-op-width;
+
+        width: auto;
+        display: grid;
+        grid-template-columns: 30pt auto $filler-width 40pt $find-key-width $find-op-width $find-val-width $filler-width 30pt $sort-key-width $sort-op-width $filler-width 20pt;
+        column-gap: 10pt;
+
+        .table-lbl {
+     //       grid-column: 1;
+        }
+        .table-val {
+      //      grid-column: 2;
+        //    text-align: right;
+        }
+        .find-lbl {
+
+        }
+        .find-key {
+            select {
+                max-width: $find-key-width;
+            }
+        }
+        .find-op {
+            select {
+                max-width: $find-op-width;
+            }
+        }
+        .find-val {
+            input {
+                max-width: $find-val-width;
+            }
+        }
+        .sort-lbl {
+
+        }
+        .sort-key {
+            select {
+                max-width: $sort-key-width;
+            }
+        }
+        .sort-op {
+            select {
+                max-width: $sort-op-width;
+            }
+        }
+        .submit {
+
+        }
+
+    }
+}

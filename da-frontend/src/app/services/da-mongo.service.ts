@@ -12,6 +12,11 @@ export class DaMongoService {
   private table: string = '';
   private pageSize: number = 50;
   private page: number = 1;
+  private selectKey?: string;
+  private selectOp?: string;
+  private selectVal?: string;
+  private sortKey?: string;
+  private sortOp?: string;
 
   constructor(private http: HttpClient) {
     this.connect();
@@ -35,18 +40,45 @@ export class DaMongoService {
     params = params.set('sort', 'ts_trd');
     params = params.set('sort_dir', -1);
     params = params.set('count_total', true);
+    if (this.selectKey && this.selectOp && this.selectVal) {
+      params = params.set('select_key', this.selectKey);
+      params = params.set('select_op', this.selectOp);
+      params = params.set('select_val', this.selectVal);
+    }
     let response = this.http.get<TableDescriptionWrapper>(`http://localhost:4100/data/at/${table_}`, { params: params });
 
     response.subscribe(data_ => this.data.next(data_?.data));
     return response;
   }
 
-  public setPageAndSize(page_: number, pageSize_: number): void {
+  public setPaging(page_: number, pageSize_: number): void {
     if (this.page == page_ && this.pageSize == pageSize_)
       return;
     this.page = page_;
     this.pageSize = pageSize_;
     this.getTableData(this.table);
+  }
+
+  public setSelect(key_?: string, op_?: string, val_?: string): void {
+    if (!key_) {
+      this.selectKey = undefined;
+      this.selectOp = undefined;
+      this.selectVal = undefined;
+    } else {
+      this.selectKey = key_;
+      this.selectOp = op_;
+      this.selectVal = val_;
+    }
+  }
+
+  public setSort(key_?: string, op_?: string): void {
+    if (!key_) {
+      this.sortKey = undefined;
+      this.sortOp = undefined;
+    } else {
+      this.sortKey = key_;
+      this.sortOp = op_;
+    }
   }
 
 }

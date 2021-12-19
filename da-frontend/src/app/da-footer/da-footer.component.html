@@ -1,12 +1,12 @@
 <div class="content">
     <div *ngIf="data && data.querySize &gt;= 0" class="pagination">
-        <div class="total-key">Total:</div>
+        <div class="total-lbl">Total:</div>
         <div class="total-val">{{data.querySize}}</div>
-        <div class="page-key">Page:</div>
-        <div class="page-val"><input #pageVal class="page-inp" type="number" [(ngModel)]="page" (keyup.enter)="setPageAndSize()"> / {{pageCount}}</div>
+        <div class="page-lbl">Page:</div>
+        <div class="page-val"><input #pageVal class="page-inp" type="number" [(ngModel)]="page" (keyup.enter)="setPaging()"> / {{pageCount}}</div>
         <!-- <div class="page-val">{{data.page}}/{{pageCount}}</div> -->
-        <div class="page-size-key">Page Size:</div>
-        <div class="page-size-val"><input #pageSizeVal class="page-size-inp" type="number" [(ngModel)]="pageSize" (keyup.enter)="setPageAndSize()"></div>
+        <div class="page-size-lbl">Page Size:</div>
+        <div class="page-size-val"><input #pageSizeVal class="page-size-inp" type="number" [(ngModel)]="pageSize" (keyup.enter)="setPaging()"></div>
         <!-- <div class="page-size-val">{{data.pageSize}}</div> -->
     </div>
 </div>

@@ -17,14 +17,14 @@
         grid-template-columns: 30pt 30pt 30pt auto 60pt 30pt 1fr;
         column-gap: 10pt;
 
-        .total-key {
+        .total-lbl {
      //       grid-column: 1;
         }
         .total-val {
       //      grid-column: 2;
             text-align: right;
         }
-        .page-key {
+        .page-lbl {
     //        grid-column: 3;
         }
         .page-val {
