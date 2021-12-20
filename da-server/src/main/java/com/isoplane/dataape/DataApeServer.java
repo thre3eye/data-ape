@@ -82,6 +82,11 @@ public class DataApeServer {
                 log.debug(String.format("Request headers: %s", headers));
             }
         });
+        _server.after(ctx_ -> {
+            ctx_.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx_.header("Pragma", "no-cache");
+            ctx_.header("Expires", "0");
+        });
         _server.get("/database", ctx_ -> {
             String dbName = this._mongo.getDatabase();
             Map<String, Object> dbMap = Collections.singletonMap("dbName", dbName);

@@ -186,6 +186,7 @@ public class MongoDriver {
             }
             count++;
         }
+        tableDescription.put("dataSize", count);
         return tableDescription;
     }
 

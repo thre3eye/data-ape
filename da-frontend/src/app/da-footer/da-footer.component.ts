@@ -43,6 +43,26 @@ export class DaFooterComponent implements OnInit {
     this.mongoDb.getTableData(this.data.db, this.data.table);
   }
 
+  public export(): void {
+    if (!this.data)
+      return;
+    //  const replacer = (key_: any, value_: any) => value_ === null ? '' : value_; // Handle null values
+    let csv = [
+      this.data.headers.join(','),
+      // ...this.data.data.join(',')
+    ];//.join('\r\n');
+    for (let rowIdx = 0; rowIdx < this.data.dataSize; rowIdx++) {
+      let row = [];
+      for (let colIdx = 0; colIdx < this.data.data.length; colIdx++) {
+        row.push(this.data.data[colIdx][rowIdx]);
+      }
+      csv.push(row.join(','));
+    }
+    navigator.clipboard.writeText(csv.join('\r\n'))
+      .then(() => this.log.log(`Copied to clipboard.`))
+      .catch((err_) => this.log.log(`Err copying to clipboard: ${err_}`));
+  }
+
   ngOnInit(): void {
   }
 

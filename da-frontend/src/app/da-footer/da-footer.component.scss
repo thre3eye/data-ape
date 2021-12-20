@@ -12,11 +12,16 @@
     align-items: center;
 
     .pagination {
+        $filler-width: 3pt;
         width: 500pt;
         display: grid;
-        grid-template-columns: 30pt 30pt 30pt auto 60pt 30pt 1fr;
+        grid-template-columns: 30pt 30pt 30pt auto 60pt 60pt $filler-width 1fr;
         column-gap: 10pt;
 
+        .filler {
+            text-align: center;
+            color: #dbdbdb;
+        }
         .total-lbl {
      //       grid-column: 1;
         }

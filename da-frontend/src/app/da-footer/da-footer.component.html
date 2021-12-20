@@ -3,10 +3,16 @@
         <div class="total-lbl">Total:</div>
         <div class="total-val">{{data.querySize}}</div>
         <div class="page-lbl">Page:</div>
-        <div class="page-val"><input #pageVal class="page-inp" type="number" [(ngModel)]="page" (keyup.enter)="setPaging()"> / {{pageCount}}</div>
-        <!-- <div class="page-val">{{data.page}}/{{pageCount}}</div> -->
+        <div class="page-val"><input #pageVal class="page-inp" type="number" [(ngModel)]="page"
+                (keyup.enter)="setPaging()"> / {{pageCount}}</div>
         <div class="page-size-lbl">Page Size:</div>
-        <div class="page-size-val"><input #pageSizeVal class="page-size-inp" type="number" [(ngModel)]="pageSize" (keyup.enter)="setPaging()"></div>
-        <!-- <div class="page-size-val">{{data.pageSize}}</div> -->
+        <div class="page-size-val"><input #pageSizeVal class="page-size-inp" type="number" [(ngModel)]="pageSize"
+                (keyup.enter)="setPaging()"></div>
+
+        <div class="filler">&#65372;</div>
+        <div class="submit">
+            <button (click)="export()" title="Copy CSV to Clipboard">📋</button>
+        </div>
+
     </div>
 </div>

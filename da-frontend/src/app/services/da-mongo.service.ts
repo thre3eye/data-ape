@@ -109,6 +109,7 @@ export interface TableDescription {
   headers: string[];
   types: string[];
   data: any[][];
+  dataSize: number;
   querySize: number;
   pageSize: number;
   page: number;
