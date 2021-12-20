@@ -38,6 +38,9 @@ export class DaFooterComponent implements OnInit {
     }
     //   this.page = this.pageSize;
     this.mongoDb.setPaging(this.page, this.pageSize);
+    if (!this.data)
+      return;
+    this.mongoDb.getTableData(this.data.db, this.data.table);
   }
 
   ngOnInit(): void {

@@ -1,4 +1,3 @@
-import { ThrowStmt } from '@angular/compiler';
 import { Component, OnInit } from '@angular/core';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, TableDescription } from '../services/da-mongo.service';
@@ -80,7 +79,7 @@ export class DaHeaderComponent implements OnInit {
     let sortDir = isSort ? this.sortDir : undefined;
     this.mongoDb.setSort(sortKey, sortDir);
 
-    this.mongoDb.getTableData(this.data.table);
+    this.mongoDb.getTableData(this.data.db, this.data.table);
   }
 
   ngOnInit(): void {

@@ -82,6 +82,11 @@ public class DataApeServer {
                 log.debug(String.format("Request headers: %s", headers));
             }
         });
+        _server.get("/database", ctx_ -> {
+            String dbName = this._mongo.getDatabase();
+            Map<String, Object> dbMap = Collections.singletonMap("dbName", dbName);
+            ctx_.json(dbMap);
+        });
         _server.get("/tables/{database}", ctx_ -> {
             String database = ctx_.pathParam("database");
             Set<String> tables = this._mongo.getTables(database);
@@ -143,7 +148,7 @@ public class DataApeServer {
                     if (_config == null) {
                         log.info(String.format("Reading properties [%s]", path));
                     } else {
-                        log.debug(String.format("Reading properties [%s]", path));
+                        log.trace(String.format("Reading properties [%s]", path));
                     }
                     PropertiesConfiguration config;
                     config = new Configurations().properties(new File(path));

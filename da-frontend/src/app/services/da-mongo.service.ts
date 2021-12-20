@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +10,6 @@ export class DaMongoService {
 
   public data = new Subject<TableDescription>();
 
-  private table: string = '';
   private pageSize: number = 50;
   private page: number = 1;
   private selectKey?: string;
@@ -26,15 +26,19 @@ export class DaMongoService {
     return Promise.resolve();
   }
 
-  public getTables(): Observable<Tables> {
-    let response = this.http.get<Tables>(`tables/at`);
-//    let response = this.http.get<Tables>(`http://localhost:4100/tables/at`);
+  public getDatabase(): Observable<DatabaseDescription> {
+    let url = `${environment.server}database`;
+    let response = this.http.get<DatabaseDescription>(url);
     return response;
   }
 
-  public getTableData(table_: string): Observable<TableDescriptionWrapper> {
-    this.table = table_;
+  public getTables(db_: string): Observable<Tables> {
+    let url = `${environment.server}tables/${db_}`;
+    let response = this.http.get<Tables>(url);
+    return response;
+  }
 
+  public getTableData(db_: string, table_: string): Observable<TableDescriptionWrapper> {
     let params = new HttpParams();
     params = params.set('page', this.page);
     params = params.set('page_size', this.pageSize);
@@ -49,8 +53,8 @@ export class DaMongoService {
       params = params.set('sort_dir', this.sortDir);
     }
 
-//    let response = this.http.get<TableDescriptionWrapper>(`http://localhost:4100/data/at/${table_}`, { params: params });
-    let response = this.http.get<TableDescriptionWrapper>(`data/at/${table_}`, { params: params });
+    let url = `${environment.server}data/${db_}/${table_}`;
+    let response = this.http.get<TableDescriptionWrapper>(url, { params: params });
 
     response.subscribe(data_ => this.data.next(data_?.data));
     return response;
@@ -61,7 +65,6 @@ export class DaMongoService {
       return;
     this.page = page_;
     this.pageSize = pageSize_;
-    this.getTableData(this.table);
   }
 
   public setSelect(key_?: string, op_?: string, val_?: string): void {
@@ -88,6 +91,10 @@ export class DaMongoService {
 
 }
 
+export interface DatabaseDescription {
+  dbName: string;
+}
+
 export interface Tables {
   tables: string[];
 }
@@ -97,6 +104,7 @@ export interface TableData {
 }
 
 export interface TableDescription {
+  db: string;
   table: string;
   headers: string[];
   types: string[];

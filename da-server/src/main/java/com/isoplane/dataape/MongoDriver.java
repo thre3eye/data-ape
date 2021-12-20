@@ -56,13 +56,19 @@ public class MongoDriver {
             user = URLEncoder.encode(user, "UTF-8");
             pass = URLEncoder.encode(pass, "UTF-8");
             if (connectionStr.contains("%s")) {
-                connectionStr = String.format(connectionStr, user, pass);
+                connectionStr = String.format(connectionStr, user, pass, dbName);
             }
             MongoClientURI uri = new MongoClientURI(connectionStr);
             this._mongo = new MongoClient(uri);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public String getDatabase() {
+        Configuration config = _config.config();
+        String dbName = config.getString("mongo.db");
+        return dbName;
     }
 
     public Set<String> getTables(String database_) {
@@ -131,6 +137,7 @@ public class MongoDriver {
         List<String> headers = new ArrayList<>();
         List<String> types = new ArrayList<>();
         List<List<Object>> data = new ArrayList<>();
+        tableDescription.put("db", database_);
         tableDescription.put("table", table_);
         tableDescription.put("headers", headers);
         tableDescription.put("types", types);

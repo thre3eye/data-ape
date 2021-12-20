@@ -10,6 +10,7 @@ import { DaMongoService, Tables } from '../services/da-mongo.service';
 })
 export class DaSidebarComponent implements OnInit {
 
+  public db?: string;
   public tables: string[] = [];
 
   public selectedTable?: string;
@@ -26,16 +27,20 @@ export class DaSidebarComponent implements OnInit {
   }
 
   public select(table_: string): void {
+    if (!this.db)
+      return;
     this.log.log(`Table: ${table_}`);
-    this.mongoDb.getTableData(table_);//.subscribe(data_ => {
-    //  });
+    this.mongoDb.getTableData(this.db, table_);
   }
 
   ngOnInit(): void {
-    this.mongoDb.getTables().subscribe(data_ => {
-      if (!data_ || !data_.tables)
-        return;
-      this.tables = data_.tables;
+    this.mongoDb.getDatabase().subscribe(db_ => {
+      this.db = db_.dbName;
+      this.mongoDb.getTables(this.db).subscribe(data_ => {
+        if (!data_ || !data_.tables)
+          return;
+        this.tables = data_.tables;
+      });
     });
   }
 
