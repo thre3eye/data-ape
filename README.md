@@ -24,6 +24,8 @@ This project is serving our own needs as light weight 'always on' db browser wit
 Obvious missing features can be added if there is interest and related submissions are welcome.
 
 Roadmap:
+   - Export result as CSV
+   - Create dockerfile for build
    - Light-weight JSON based record editing
 
 Thanks for looking.
