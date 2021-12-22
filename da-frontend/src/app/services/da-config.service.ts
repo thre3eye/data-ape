@@ -18,7 +18,7 @@ export class DaConfigService {
   }
 
   public getConfig(): Observable<ConfigData> {
-    let url = `${environment.server}config/config.json`;
+    let url = `${environment.server}config/da-config.json`;
     let response = this.http.get<ConfigData>(url);
     response.subscribe(rsp_ => {
       this.config.next(rsp_);
