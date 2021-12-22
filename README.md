@@ -35,12 +35,16 @@ For now this only works with MongoDB and one database defined in the properties:
 
 Missing features can be added if there is interest and related submissions are welcome.
 
+### Features:
+   - Select, view and page through tabular data (database table, etc)
+   - Constrain data with select filters in GUI
+   - Sort data in GUI. Optionally define default sort per db/table in config file
+   - Export result as CSV to Clipboard
+   - Order columns with drag & drop. Optionally define default order per db/table in config file
+   - Hide/View columns (right-click). Optionally define default hide/view columns per db/table in config file
+   - Highlight related cells on click (aid tracing in time-series etc)
+
 ### Roadmap:
-   - <s>Export result as CSV to Clipboard</s>
-   - <s>Order columns with drag & drop</s>
-   - <s>Hide/View columns</s>
-   - <s>Define default order/hide/view columns per db/table in properties</s>
-   - <s>Define default sort per db/table in properties</s>
    - Tabs (or a practical alternative) to keep several table views open
    - Check feasibility of conversion functions for table columns (example: eopch timestamp -> readable date)
    - Deal with non-primitive and nested data columns
