@@ -4,11 +4,30 @@
             "id": "at",
             "tables": [
                 {
-                    "id": "trades",
+                    "id": "trade_ledger",
                     "configs": [
                         {
                             "id": "default",
-                            "columns": ["_id", "occId"]
+                            "columns": [
+                                "occId",
+                                "ts_trd",
+                                "px_trd",
+                                "sz_trd",
+                                "px_trd_tot",
+                                "trd_cmt",
+                                "trd_typ",
+                                "trd_usr",
+                                "trd_acc",
+                                "_ul",
+                                "_id",
+                                "trd_grp"
+                            ],
+                            "sort": [
+                                {
+                                    "col": "ts_trd",
+                                    "dir": "-1"
+                                }
+                            ]
                         }
                     ]
                 }

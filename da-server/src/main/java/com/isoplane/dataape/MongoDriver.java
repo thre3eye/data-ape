@@ -119,20 +119,12 @@ public class MongoDriver {
         }
 
         long queryCount = isCount ? collection.countDocuments(query) : -1;
-        //    List<Bson> aggregationQuery = new ArrayList<>();
-        //  if (sort != null) {
-        //       aggregationQuery.add(Aggregates.sort(new Document(sort, sortDir)));
-        //   }
-        // aggregationQuery.add(Aggregates.skip(pageSize * (page - 1)));
-        // aggregationQuery.add(Aggregates.limit(pageSize));
-        // AggregateIterable<Document> result = collection.aggregate(aggregationQuery);//.allowDiskUse(true);
 
         FindIterable<Document> documents = collection.find(query);
         if (sortKey != null) {
             documents = sortDir < 0 ? documents.sort(descending(sortKey)) : documents.sort(ascending(sortKey));
         }
         documents = documents.skip(pageSize * (page - 1)).limit(pageSize);
-        //db.getCollection("collectionName").aggregate(anyList());
         Map<String, Object> tableDescription = new HashMap<>();
         List<String> headers = new ArrayList<>();
         List<String> types = new ArrayList<>();
@@ -145,6 +137,10 @@ public class MongoDriver {
         tableDescription.put("querySize", queryCount);
         tableDescription.put("pageSize", pageSize);
         tableDescription.put("page", page);
+        if (sortKey != null) {
+            tableDescription.put("sortKey", sortKey);
+            tableDescription.put("sortDir", sortDir);
+        }
 
         int count = 0;
         for (Document document : documents) {

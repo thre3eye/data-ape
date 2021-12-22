@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
+import { Observable, ReplaySubject, Subject } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { DaLogService } from './da-log.service';
 
@@ -37,6 +37,7 @@ export interface ConfigData {
         configs: [{
           id: string,
           columns: string[],
+          sort: [{ col: string, dir: string }]
         }]
       }
     ]

@@ -39,6 +39,10 @@ export class DaHeaderComponent implements OnInit {
       if (!data_ || data_.querySize < 0)
         return;
       this.data = data_;
+      if (this.data.sortKey && this.data.sortDir) {
+        this.sortKey = this.data.sortKey;
+        this.sortDir = this.data.sortDir;
+      }
     });
   }
 
@@ -61,7 +65,7 @@ export class DaHeaderComponent implements OnInit {
     let isSort = !this.sortKey || '__none__' !== this.sortKey;
     let sortKey = isSort ? this.sortKey : undefined;
     let sortDir = isSort ? this.sortDir : undefined;
-    this.mongoDb.setSort(sortKey, sortDir);
+    this.mongoDb.setSort(this.data.table, sortKey, sortDir);
 
     this.mongoDb.getTableData(this.data.db, this.data.table);
   }

@@ -12,17 +12,14 @@ export class DaMongoService {
 
   private _data?: TableDescription;
   public data = new Subject<TableDescription>();
-  // private _hiddenColMap: Map<string, string[]> = new Map();
-  // public hiddenColumnMap = new Subject<Map<string, string[]>>();
 
   private pageSize: number = 50;
   private page: number = 1;
   private selectKey?: string;
   private selectOp?: string;
   private selectVal?: string;
-  private sortKey?: string;
-  private sortDir?: string;
   private displayMap: Map<string, string[]> = new Map();
+  private sortMap: Map<string, Map<string, string>> = new Map();
 
   constructor(
     private http: HttpClient,
@@ -41,6 +38,16 @@ export class DaMongoService {
               this.displayMap.set(tbl_.id, cols);
             } else {
               this.displayMap.delete(tbl_.id);
+            }
+            let sort = tCfg_.sort;
+            if (sort && sort.length > 0) {
+              let tsMap = new Map<string, string>();
+              sort.forEach(s_ => {
+                tsMap.set(s_.col, s_.dir);
+              });
+              this.sortMap.set(tbl_.id, tsMap);
+            } else {
+              this.sortMap.delete(tbl_.id);
             }
           }
         })
@@ -75,9 +82,13 @@ export class DaMongoService {
       params = params.set('select_op', this.selectOp);
       params = params.set('select_val', this.selectVal);
     }
-    if (this.sortKey && this.sortDir) {
-      params = params.set('sort_key', this.sortKey);
-      params = params.set('sort_dir', this.sortDir);
+    let sortMap = this.sortMap.get(table_);
+    if (sortMap && sortMap.size > 0) {
+      let sort = sortMap.entries().next().value;
+      let sortKey = sort[0];
+      let sortDir = sort[1];
+      params = params.set('sort_key', sortKey);
+      params = params.set('sort_dir', sortDir);
     }
 
     let url = `${environment.server}data/${db_}/${table_}`;
@@ -114,26 +125,13 @@ export class DaMongoService {
     }
   }
 
-  public setSort(key_?: string, dir_?: string): void {
-    if (!key_) {
-      this.sortKey = undefined;
-      this.sortDir = undefined;
-    } else {
-      this.sortKey = key_;
-      this.sortDir = dir_;
+  public setSort(table_: string, key_?: string, dir_?: string): void {
+    this.sortMap.delete(table_);
+    if (key_ && dir_) {
+      let sortMap = new Map<string, string>([[key_, dir_]]);
+      this.sortMap.set(table_, sortMap);
     }
   }
-
-  // public setHiddenColumns(table_: string, cols_: Set<string>): void {
-  //   if (!table_)
-  //     return;
-  //   if (!cols_ || cols_.size == 0) {
-  //     this._hiddenColMap.delete(table_);
-  //   } else {
-  //     this._hiddenColMap.set(table_, [...cols_]);
-  //   }
-  //   this.hiddenColumnMap.next(this._hiddenColMap);
-  // }
 
   public swapColumns(srcKey_: string, dstKey_: string): void {
     if (!this._data || !srcKey_ || !dstKey_)
@@ -173,7 +171,6 @@ export class DaMongoService {
       cols = [...this._data.getActiveColumns()];
       let missing = this._data.headers.filter(c_ => cols.indexOf(c_) < 0);
       cols = [...missing, ...cols];
-      //  let headers = [this._data.headers];
     } else {
       cols = this._data.getActiveColumns();
       let idx = cols.indexOf(col_);
@@ -213,6 +210,8 @@ export interface TableDescription {
   querySize: number;
   pageSize: number;
   page: number;
+  sortKey?: string;
+  sortDir?: string;
 
   getHiddenColumns(): string[];
   getActiveColumns(): string[];
@@ -232,6 +231,8 @@ export class TableDescriptionImpl implements TableDescription {
   public querySize!: number;
   public pageSize!: number;
   public page!: number;
+  public sortKey?: string;
+  public sortDir?: string;
   private _activeColumns?: string[];
   private _activeStyles?: string[]; // Note: For speed
 
@@ -247,7 +248,7 @@ export class TableDescriptionImpl implements TableDescription {
   }
 
   public getStyleClass(i_: number): string {
-    let styles = this._activeStyles&&this._activeStyles.length>0?this._activeStyles: this.types;
+    let styles = this._activeStyles && this._activeStyles.length > 0 ? this._activeStyles : this.types;
     let style = styles[i_];
     return style;
   }

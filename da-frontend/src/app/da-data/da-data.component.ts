@@ -1,5 +1,4 @@
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { __spreadArrays } from 'tslib';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, TableDescription } from '../services/da-mongo.service';
 
@@ -20,21 +19,6 @@ export class DaDataComponent implements OnInit, AfterViewInit {
     private mongoDb: DaMongoService
   ) { }
 
-  // public getData(i_: number, j_: number): any {
-  //   if (!this.data || !this.data.data)
-  //     return null;
-  //   //   this.log.log(`index ${i_}/${j_}`);
-  //   let value = this.data.data[i_][j_];
-  //   return value;
-  // }
-
-  // public getStyleClass(i_: number): string {
-  //   if (!this.data || !this.data.types)
-  //     return '';
-  //   let value = this.data?.types[i_];
-  //   return value;
-  // }
-
   public onDragStart(event_: DragEvent, header_: string): void {
     this.log.log(`onDragStart: ${header_}`);
     event_.dataTransfer?.setData('string', header_);
@@ -47,27 +31,6 @@ export class DaDataComponent implements OnInit, AfterViewInit {
       return;
     this.mongoDb.swapColumns(srcKey, dstKey);
   }
-
-  // public getHeaders(): string[] {
-  //   if (!this.data)
-  //     return [];
-  //   let headers: Set<string> = new Set(this.data.headers);
-  //   return Array.from(headers);
-  // }
-
-  // public getHeaderIndices(): number[] {
-  //   if (!this.data)
-  //     return [];
-  //   let indices: number[] = [];
-  //   let headers = this.getHeaders();
-  //   let bla = headers.forEach(h_ => {
-  //     let idx = this.data?.headers.indexOf(h_) ?? -1;
-  //     if (idx >= 0) {
-  //       indices.push(idx);
-  //     }
-  //   });
-  //   return indices;
-  // }
 
   public contextMenu(event_: MouseEvent, header_: string): void {
     if (!this.data || !this.ctxMenu)
@@ -101,7 +64,6 @@ export class DaDataComponent implements OnInit, AfterViewInit {
         this.log.log(`contextMenuClick: ${action}/${view}`);
         break;
     }
-    //    this.mongoDb.setHiddenColumns(this.data.table, this.hiddenCols);
     this.ctxMenu.nativeElement.style.display = "none";
   }
 
@@ -113,11 +75,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
     this.mongoDb.data.subscribe(data_ => {
       if (!data_)
         return;
-      this.data = data_;// JSON.stringify(data_.data);
-      //     this.log.log(data_);
-      //   this.headers = Object.getOwnPropertyNames(data_.data);// [...data_.data.keys()]
-      //   this.size = (data_.data)[this.headers[0]].length;
-      //   this.log.log(this.headers);
+      this.data = data_;
     })
   }
 

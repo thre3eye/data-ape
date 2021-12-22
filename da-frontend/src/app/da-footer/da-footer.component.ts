@@ -50,13 +50,16 @@ export class DaFooterComponent implements OnInit {
   public export(): void {
     if (!this.data)
       return;
-    let csv = [this.data.headers.join(',')];
+    let csv = [`"${this.data.getHeaders().join('","')}"`];
     for (let rowIdx = 0; rowIdx < this.data.dataSize; rowIdx++) {
       let row = [];
-      for (let colIdx = 0; colIdx < this.data.data.length; colIdx++) {
-        row.push(this.data.data[colIdx][rowIdx]);
+      for(let col of this.data.getData()) {
+        row.push(col[rowIdx]);
       }
-      csv.push(row.join(','));
+      // for (let colIdx = 0; colIdx < this.data.data.length; colIdx++) {
+      //   row.push(this.data.data[colIdx][rowIdx]);
+      // }
+      csv.push(`"${row.join('","')}"`);
     }
     navigator.clipboard.writeText(csv.join('\r\n'))
       .then(() => {
