@@ -24,7 +24,10 @@ This project is serving our own needs as light weight 'always on' db browser wit
 Obvious missing features can be added if there is interest and related submissions are welcome.
 
 Roadmap:
-   - <s>Export result as CSV</s>
+   - <s>Export result as CSV to Clipboard</s>
+   - <s>Sort columns with drag & drop</s>
+   - <s>Hide/View columns</s>
+   - <s>Define default sort/hide/view in properties</s>
    - Create dockerfile for build
    - Light-weight JSON based record editing
 
