@@ -4,7 +4,7 @@ An optionally containerized database GUI for your browser.
 ![plot](./data-ape.png)
 
 ### What's the point?
-Existing tools didn't cut it for our use case of quickly reviewing database content for development and troubleshooting (i.e. processes that are either/or slow, clunky, expensive, annoy with licensing or use up too many resources on a Dev VM). So we spent a bit of time to write a web browser based tool and deploy it into an always-on Docker container.
+Existing tools didn't cut it for our use case of quickly reviewing database content for development and troubleshooting (i.e. processes that are either/or slow, clunky, expensive, annoy with licensing or use up too many resources on a Dev VM). So we spent a bit of time to write a web browser based tool and deploy it into an always-on Docker container. Now it even runs on the smarphone - as long as it's on the same network (we advise against running this tool on a public/insecure environment!)
 
 This tool is mostly aimed at no-sql databases such as (for now only) MongoDB with support for simple filtering and sorting. It should be easy to extend to SQL databases, CSV files or wherever data is stored as long as it can be represented in tabular text. It's great for time series.
 
@@ -47,6 +47,7 @@ Missing features can be added if there is interest and related submissions are w
    - Create dockerfile for build
    - Light-weight JSON based record editing
    - Persist and GUI-edit configuration (we don't really need this since our target db is well defines)
+   - Add secrurity/login (not required for now and may add complexity to deployment, maintenance and usage)
 
 ### Tips
    - To easily define order/hide/view columns in the config file, first arrange the view in the GUI, then export to CSV and copy the headers into the config columns.
