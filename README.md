@@ -1,6 +1,8 @@
 # data-ape
 A containerized database browser.
 
+![plot](./data-ape.png)
+
 For now this only works with MongoDB and one database defined in the properties:
 
 1. Build GUI:
