@@ -13,6 +13,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
 
   public data?: TableDescription;
   public size: number = 0;
+  public selection?: string;
 
   constructor(
     private log: DaLogService,
@@ -67,9 +68,14 @@ export class DaDataComponent implements OnInit, AfterViewInit {
     this.ctxMenu.nativeElement.style.display = "none";
   }
 
-  public select(idx_: number): void {
-    this.log.log(`idx: ${idx_}`);
+  public selectCell(val_: string): void {
+    this.log.log(`dblclick: ${val_}`);
+    this.selection = val_;
   }
+
+  // public select(idx_: number): void {
+  //   this.log.log(`idx: ${idx_}`);
+  // }
 
   ngOnInit(): void {
     this.mongoDb.data.subscribe(data_ => {

@@ -8,8 +8,8 @@
             </tr>
         </thead>
         <tbody>
-            <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index" (click)="select(j)">
-                <td *ngFor="let col of data.getData(), let i = index" class="{{data.getStyleClass(i)}}">{{col[j]}}</td>
+            <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index">
+                <td *ngFor="let col of data.getData(), let i = index" class="{{data.getStyleClass(i)}}" [ngClass]="{'highlight': col[j]===selection}" (click)=selectCell(col[j])>{{col[j]}}</td>
                 <!-- <td *ngFor="let i of getHeaderIndices()" class="{{getStyleClass(i)}}">{{data | daData:i:j}}</td> -->
             </tr>
         </tbody>
