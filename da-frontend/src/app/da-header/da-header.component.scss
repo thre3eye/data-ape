@@ -13,7 +13,8 @@
     padding-left: 20pt;
 
     .selection {
-        $filler-width: 3pt;
+        $font-family: 'Roboto Condensed', sans-serif;;
+        $filler-width: 10pt;
         $find-key-width: 100pt;
         $find-op-width: 55pt;
         $find-val-width: 70pt;
@@ -22,9 +23,13 @@
 
         width: auto;
         display: grid;
-        grid-template-columns: 20pt auto $filler-width 30pt auto $filler-width 40pt $find-key-width $find-op-width $find-val-width $filler-width 30pt $sort-key-width $sort-op-width $filler-width 20pt;
-        column-gap: 10pt;
+        grid-template-columns: auto auto $filler-width auto auto $filler-width auto $find-key-width auto auto $filler-width auto $sort-key-width auto $filler-width 20pt;
+        column-gap: 5pt;
 
+        input,
+        select {
+            font-family: $font-family;
+        }
         .filler {
             text-align: center;
             color: #dbdbdb;
@@ -32,10 +37,13 @@
         .db-lbl {
         }
         .db-val {
+            font-weight: bold;
         }
         .table-lbl {
         }
         .table-val {
+            //     padding: 0 5pt;
+            font-weight: bold;
         }
         .find-lbl {
         }
@@ -53,6 +61,7 @@
         .find-val {
             input {
                 max-width: $find-val-width;
+                //          font-family: $font-family;
             }
         }
         .sort-lbl {
@@ -60,11 +69,13 @@
         .sort-key {
             select {
                 max-width: $sort-key-width;
+                //          font-family: $font-family;
             }
         }
         .sort-op {
             select {
                 max-width: $sort-op-width;
+                //           font-family: $font-family;
             }
         }
         .submit {

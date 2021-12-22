@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, TableDescription } from '../services/da-mongo.service';
+import { DaMsgService, MessageData, MessageLevel } from '../services/da-msg.service';
 
 @Component({
   selector: 'app-da-footer',
@@ -14,8 +15,11 @@ export class DaFooterComponent implements OnInit {
   public pageCount: number = -1;
   public pageSize: number = 50;
 
+  public message: MessageData = { text: '', level: MessageLevel.Default };
+
   constructor(
     private log: DaLogService,
+    private msg: DaMsgService,
     private mongoDb: DaMongoService
   ) {
     this.mongoDb.data.subscribe(data_ => {
@@ -46,11 +50,7 @@ export class DaFooterComponent implements OnInit {
   public export(): void {
     if (!this.data)
       return;
-    //  const replacer = (key_: any, value_: any) => value_ === null ? '' : value_; // Handle null values
-    let csv = [
-      this.data.headers.join(','),
-      // ...this.data.data.join(',')
-    ];//.join('\r\n');
+    let csv = [this.data.headers.join(',')];
     for (let rowIdx = 0; rowIdx < this.data.dataSize; rowIdx++) {
       let row = [];
       for (let colIdx = 0; colIdx < this.data.data.length; colIdx++) {
@@ -59,11 +59,22 @@ export class DaFooterComponent implements OnInit {
       csv.push(row.join(','));
     }
     navigator.clipboard.writeText(csv.join('\r\n'))
-      .then(() => this.log.log(`Copied to clipboard.`))
-      .catch((err_) => this.log.log(`Err copying to clipboard: ${err_}`));
+      .then(() => {
+        let msg = `Data copied to clipboard`;
+        this.msg.publish({ text: msg, level: MessageLevel.Default });
+        this.log.log(`${msg}`);
+      })
+      .catch((err_) => {
+        let msg = "Err copying to clipboard: ${err_}";
+        this.msg.publish({ text: msg, level: MessageLevel.Error });
+        this.log.log(`${msg}`)
+      });
   }
 
   ngOnInit(): void {
+    this.msg.messages.subscribe(msg_ => {
+      this.message = msg_;
+    });
   }
 
 }

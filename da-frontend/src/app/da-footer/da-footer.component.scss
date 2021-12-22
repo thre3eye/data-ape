@@ -5,15 +5,19 @@
 }
 
 .content {
+    $pagination-width: 500pt;
     width: 100%;
     overflow: auto;
-    display: flex;
+    //  display: flex;
+    display: grid;
+    grid-template-columns: 1fr $pagination-width 1fr;
     justify-content: center;
     align-items: center;
 
     .pagination {
+        grid-column: 2;
         $filler-width: 3pt;
-        width: 500pt;
+        width: $pagination-width;
         display: grid;
         grid-template-columns: 30pt 30pt 30pt auto 60pt 60pt $filler-width 1fr;
         column-gap: 10pt;
@@ -23,22 +27,38 @@
             color: #dbdbdb;
         }
         .total-lbl {
-     //       grid-column: 1;
+            //       grid-column: 1;
         }
         .total-val {
-      //      grid-column: 2;
+            //      grid-column: 2;
             text-align: right;
         }
         .page-lbl {
-    //        grid-column: 3;
+            //        grid-column: 3;
         }
         .page-val {
-    //        grid-column: 4;
+            //        grid-column: 4;
             text-align: right;
         }
-        .page-inp, .page-size-inp {
+        .page-inp,
+        .page-size-inp {
             width: 40pt;
             text-align: center;
+        }
+    }
+    .messages {
+        grid-column: 3;
+        padding-right: 10pt;
+        text-align: right;
+
+        &.default{
+            color: green;
+        }
+        &.error {
+            color: red;
+        }
+        &.warn {
+            color: orange;
         }
     }
 }

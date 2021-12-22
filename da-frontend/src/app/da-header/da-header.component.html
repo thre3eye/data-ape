@@ -29,7 +29,7 @@
             </select>
         </div>
         <div class="find-val">
-            <input *ngIf="selectKey != '__all__'" class="find-inp" type="text" [(ngModel)]="selectVal">
+            <input *ngIf="selectKey != '__all__'" class="find-inp" type="text" [(ngModel)]="selectVal" (keyup.enter)="submit()">
             <!-- (keyup.enter)="setSelectValue()" -->
         </div>
 

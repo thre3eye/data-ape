@@ -29,3 +29,7 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 ## Package
 
  ng build --configuration production --progress --verbose
+
+ ## Run
+
+ If copying doesn't work try adding the site to chrome://flags/#unsafely-treat-insecure-origin-as-secure

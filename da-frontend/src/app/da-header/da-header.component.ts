@@ -39,24 +39,8 @@ export class DaHeaderComponent implements OnInit {
       if (!data_ || data_.querySize < 0)
         return;
       this.data = data_;
-
-      //    this.page = data_.page;
-      //    this.pageCount = Math.round(data_.querySize / data_.pageSize);
-      //    this.pageSize = data_.pageSize;
     });
   }
-
-  // public setSelectKey(val_: string): void {
-  //   this.log.log(`Select key: ${val_} - ${this.selectKey}`);
-  // }
-
-  // public setSelectValue(): void {
-  //   this.log.log(`Select val: ${this.selectVal}`);
-  // }
-
-  // public setSortKey(val_: string): void {
-  //   this.log.log(`Sort   key: ${val_} - ${this.sortKey}`);
-  // }
 
   public submit(): void {
     if (!this.data)

@@ -10,9 +10,9 @@
                 (keyup.enter)="setPaging()"></div>
 
         <div class="filler">&#65372;</div>
-        <div class="submit">
-            <button (click)="export()" title="Copy CSV to Clipboard">📋</button>
+        <div class="export">
+            <button (click)="export()" title="Copy CSV to Clipboard">✂</button>
         </div>
-
     </div>
+    <div class="messages {{message.level}}">{{message.text}}</div>
 </div>

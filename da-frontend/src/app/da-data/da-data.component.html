@@ -2,14 +2,24 @@
     <table *ngIf="data" class="fixed_headers">
         <thead>
             <tr>
-                <th *ngFor="let header of data?.headers">{{header}}</th>
+                <th *ngFor="let header of data.getHeaders()" draggable="true" (dragstart)="onDragStart($event, header)"
+                    (dragover)="$event.preventDefault()" (drop)="$event.preventDefault();drop($event);"
+                    (contextmenu)="$event.preventDefault();contextMenu($event, header);">{{header}}</th>
             </tr>
         </thead>
         <tbody>
             <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index" (click)="select(j)">
-                <td *ngFor="let header of data?.headers; let i = index" class="{{getStyleClass(i)}}">{{data |
-                    daData:i:j}}</td>
+                <td *ngFor="let col of data.getData(), let i = index" class="{{data.getStyleClass(i)}}">{{col[j]}}</td>
+                <!-- <td *ngFor="let i of getHeaderIndices()" class="{{getStyleClass(i)}}">{{data | daData:i:j}}</td> -->
             </tr>
         </tbody>
     </table>
 </div>
+
+<menu #ctxMenu id="ctxMenu" (mouseleave)="ctxMenu.style.display='none'" (click)="contextMenuClick($event)" *ngIf="data?.getHiddenColumns() as hidden">
+    <menu title="Hide '{{ctxMenu.dataset['id']}}'" data-action="hide"> </menu>
+    <menu *ngIf="hidden.length>0" title="Restore...">
+        <menu title="ALL" data-action="view" data-val="__all__"></menu>
+        <menu *ngFor="let col of hidden" title="'{{col}}'" data-action="view" [attr.data-val]="col"></menu>
+    </menu>
+</menu>

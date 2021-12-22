@@ -1,49 +1,36 @@
 :host {
     font-family: "Roboto Mono", monospace;
-    // -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     font-size: 14px;
     color: #333;
-    //  box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
 header {
-    flex: 0 0 20pt;
+    $height: 26pt;
+    flex: 0 0 $height;
     display: flex;
-    //  position: relative;
-    //  width: 100%;
-    //  height: 50pt;
 
     border-bottom: 1pt solid black;
-    //    background-color: aquamarine;
+    line-height: $height;
 }
 
 main {
     flex: 1;
     overflow: hidden;
     display: flex;
-    //  height: 100%;
-    //   flex-flow: column nowrap;
-    //   justify-content: space-around;
-    //   align-content: space-around;
-    //   height: 100%;
 
     .main-content {
-    //    order: 2;
-    //    flex: 1 1 auto;
         display: flex;
         flex-direction: column;
     }
 }
 
 footer {
-    flex: 0 0 30pt;
+    $height: 28pt;
+    flex: 0 0 $height;
     display: flex;
-    // position: relative;
-    // width: 100%;
-    //  height: 50pt;
 
     border-top: 1pt solid black;
-    //   background-color: beige;
+    line-height: $height;
 }

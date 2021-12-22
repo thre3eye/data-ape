@@ -64,6 +64,11 @@ public class DataApeServer {
                 files_.directory = config.getString("server.static.files");
                 files_.location = Location.EXTERNAL;
             });
+            config_.addStaticFiles(files_ -> {
+                files_.hostedPath = config.getString("server.config.path");
+                files_.directory = config.getString("server.config.files");
+                files_.location = Location.EXTERNAL;
+            });
         });
         _server.before(ctx_ -> {
             if (log.isDebugEnabled()) {
@@ -76,9 +81,9 @@ public class DataApeServer {
                 } catch (Exception ex) {
                     log.error("Error getting remote address", ex);
                 }
-                log.debug(String.format("Reqiest method : %s", method));
-                log.debug(String.format("Reqiest path   : %s", ctxPath));
-                log.debug(String.format("Reqiest IP     : %s", ipStr));
+                log.debug(String.format("Request method : %s", method));
+                log.debug(String.format("Request path   : %s", ctxPath));
+                log.debug(String.format("Request IP     : %s", ipStr));
                 log.debug(String.format("Request headers: %s", headers));
             }
         });

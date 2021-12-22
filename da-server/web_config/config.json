@@ -1,0 +1,18 @@
+{
+    "database": [
+        {
+            "id": "at",
+            "tables": [
+                {
+                    "id": "trades",
+                    "configs": [
+                        {
+                            "id": "default",
+                            "columns": ["_id", "occId"]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
