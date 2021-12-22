@@ -1,30 +1,23 @@
 {
     "database": [
         {
-            "id": "at",
+            "id": "my_db",
             "tables": [
                 {
-                    "id": "trade_ledger",
+                    "id": "my_table",
                     "configs": [
                         {
                             "id": "default",
                             "columns": [
-                                "occId",
-                                "ts_trd",
-                                "px_trd",
-                                "sz_trd",
-                                "px_trd_tot",
-                                "trd_cmt",
-                                "trd_typ",
-                                "trd_usr",
-                                "trd_acc",
-                                "_ul",
-                                "_id",
-                                "trd_grp"
+                                "col_1",
+                                "col_2",
+                                "col_5",
+                                "col_7",
+                                "col_6"
                             ],
                             "sort": [
                                 {
-                                    "col": "ts_trd",
+                                    "col": "col_2",
                                     "dir": "-1"
                                 }
                             ]
