@@ -25,9 +25,10 @@ Obvious missing features can be added if there is interest and related submissio
 
 Roadmap:
    - <s>Export result as CSV to Clipboard</s>
-   - <s>Sort columns with drag & drop</s>
+   - <s>Order columns with drag & drop</s>
    - <s>Hide/View columns</s>
-   - <s>Define default sort/hide/view in properties</s>
+   - <s>Define default order/hide/view in properties</s>
+   - <s>Define default sort in properties</s>
    - Create dockerfile for build
    - Light-weight JSON based record editing
 
