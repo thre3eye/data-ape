@@ -42,10 +42,11 @@ Missing features can be added if there is interest and related submissions are w
    - Export result as CSV to Clipboard
    - Order columns with drag & drop. Optionally define default order per db/table in config file
    - Hide/View columns (right-click). Optionally define default hide/view columns per db/table in config file
+   - Session persistenve of select/sort/paging/highlight per table to conveniently switch between views
    - Highlight related cells on click (aid tracing in time-series etc)
 
 ### Roadmap:
-   - Tabs (or a practical alternative) to keep several table views open
+   - Tabs (or a practical alternative) to keep several table views open (Session persistence of select/sort/paging/highlight lowers priority of tabs)
    - Check feasibility of conversion functions for table columns (example: eopch timestamp -> readable date)
    - Deal with non-primitive and nested data columns
    - Create dockerfile for build
