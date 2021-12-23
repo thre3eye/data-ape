@@ -20,17 +20,27 @@ For now this only works with MongoDB and one database defined in the properties:
 2. Build & package server:
    - cd da-server
    - mvn package
-3. This should yield a docker image in da-server/target/. Import it.
-4. Create & prepare a docker volume (and assuming standard location):
+3. This should yield in da-server/target a server jar and a docker image tarball.
+
+#### To run on system:
+
+4. Create a NOCHECKIN_da.properties file populated with the commented out 'mongo.*' properties (from da-server/da.properties) in the data-ape dir
+4. cd to da-server
+6. Run: java -Dlogback.configurationFile=./da-logback.xml -jar ./target/da-server-1.0.0-SNAPSHOT-jar-with-dependencies.jar ../NOCHECKIN_da.properties,./da.properties
+
+#### To run in Docker:
+
+4. Import the da-server/target/da-server.docker.tar imaage.
+5. Create & prepare a docker volume (assuming default locations):
    - docker volume create data-ape
-   -  mkdir /var/lib/docker/volumes/data-ape/_data/config
-   -  mkdir /var/lib/docker/volumes/data-ape/_data/logs
-   -  mkdir /var/lib/docker/volumes/data-ape/_data/web_config
-5. Prepare config files:
+   - mkdir /var/lib/docker/volumes/data-ape/_data/config
+   - mkdir /var/lib/docker/volumes/data-ape/_data/logs
+   - mkdir /var/lib/docker/volumes/data-ape/_data/web_config
+6. Prepare config files:
    - Copy da.properties from da-server into the new config dir
-   - Create a NOCHECKIN_da.properties file populated with the commented out 'mongo.*' properties in the new config dir
+   - Create a NOCHECKIN_da.properties file populated with the commented out 'mongo.*' properties (from da-server/da.properties) in the new config dir
    - Create a da-config.json file in web_config and populate it as per example (also see Tips below)
-6. Create a docker container:
+7. Create a docker container:
    - docker run -d --name data-ape --restart=always -p 888:4100 --mount type=volume,source=data-ape,target=/docker-data/data-ape da-server:1.0.0-SNAPSHOT
 
 Missing features can be added if there is interest and related submissions are welcome.
