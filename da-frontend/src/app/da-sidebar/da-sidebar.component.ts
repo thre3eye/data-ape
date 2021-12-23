@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { defer, Observable } from 'rxjs';
 import { DaLogService } from '../services/da-log.service';
-import { DaMongoService, Tables } from '../services/da-mongo.service';
+import { DaMongoService } from '../services/da-mongo.service';
 
 @Component({
   selector: 'app-da-sidebar',
@@ -30,7 +29,8 @@ export class DaSidebarComponent implements OnInit {
     if (!this.db)
       return;
     this.log.log(`Table: ${table_}`);
-    this.mongoDb.getTableData(this.db, table_);
+    let params = this.mongoDb.getQueryParameters(table_);
+    this.mongoDb.getTableData(this.db, table_, params);
   }
 
   ngOnInit(): void {

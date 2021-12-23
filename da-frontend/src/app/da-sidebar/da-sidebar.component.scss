@@ -1,25 +1,56 @@
+@import "../base.scss";
+
+:host {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
 .content {
-    // overflow-wrap: break-word;
-    overflow-y: auto;
+    width: 100%;
+    overflow: hidden;
 
-    .table {
-        // padding-left: 3pt;
-        padding: 1pt 3pt;
+    display: grid;
+    grid-template-rows: $header-height 1fr;
+
+    .header {
+        grid-row: 1;
+        line-height: $header-height;
+        border-bottom: 1pt solid black;
+
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+
+        .db {
+            padding-left: 5pt;
+            font-weight: bold;
+        }
+    }
+    .tables {
+        grid-row: 2;
         cursor: pointer;
+        overflow-y: auto;
+        .table {
+            padding: 1pt 4pt;
 
-        &:nth-child(even) {
-            background-color: rgb(242, 242, 242);
+            &:nth-child(even) {
+                background-color: $background-color-even;
+            }
+            &:nth-child(odd) {
+                background-color: $background-color-odd;
+            }
+            &:hover {
+                background-color: $background-color-hover;
+            }   
         }
-        &:nth-child(odd) {
-            background-color: rgb(235, 235, 235);
-        }
-        &:hover {
-            background-color: rgb(255, 227, 137);
+
+        .selected {
+            font-weight: bold;
+        //    color: rgb(0, 140, 255);
+            background-color: $background-color-highlight !important;
         }
     }
 
-    .selected {
-        font-weight: bold;
-        color: rgb(0, 140, 255);
-    }
 }

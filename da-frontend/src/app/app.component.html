@@ -1,5 +1,25 @@
-<!-- Header -->
-<header class="da-header-host">
+<as-split direction="horizontal" [useTransition]="true" unit="pixel">
+  <as-split-area [size]="200" class="sidebar-area">
+    <div class="sidebar-content">
+      <app-da-sidebar></app-da-sidebar>
+    </div>
+  </as-split-area>
+
+  <as-split-area class="main-area">
+    <div class="header-content">
+      <app-da-header></app-da-header>
+    </div>
+    <div class="data-content">
+      <app-da-data></app-da-data>
+    </div>
+    <div class="footer-content">
+      <app-da-footer></app-da-footer>
+    </div>
+  </as-split-area>
+</as-split>
+
+
+<!-- <header class="da-header-host">
   <app-da-header></app-da-header>
 </header>
 <main>
@@ -16,7 +36,6 @@
 </main>
 <footer>
   <app-da-footer></app-da-footer>
-</footer>
-
+</footer> -->
 
 <router-outlet></router-outlet>

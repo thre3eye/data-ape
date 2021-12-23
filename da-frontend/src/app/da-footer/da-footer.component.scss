@@ -8,11 +8,11 @@
     $pagination-width: 500pt;
     width: 100%;
     overflow: auto;
-    //  display: flex;
     display: grid;
     grid-template-columns: 1fr $pagination-width 1fr;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 
     .pagination {
         grid-column: 2;

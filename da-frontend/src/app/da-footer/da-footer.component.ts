@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { environment } from 'src/environments/environment';
 import { DaLogService } from '../services/da-log.service';
-import { DaMongoService, TableDescription } from '../services/da-mongo.service';
+import { DaMongoService, QueryParameters, TableDescription } from '../services/da-mongo.service';
 import { DaMsgService, MessageData, MessageLevel } from '../services/da-msg.service';
 
 @Component({
@@ -34,17 +35,20 @@ export class DaFooterComponent implements OnInit {
   }
 
   public setPaging(): void {
-    this.log.log(`page: ${this.page}`);
+    if (!environment.production) {
+      this.log.log(`setPaging: ${this.page}/${this.pageCount} (${this.pageSize})`);
+    }
     if (this.page < 1) {
       this.page = 1;
     } else if (this.page > this.pageCount) {
       this.page = this.pageCount;
     }
-    //   this.page = this.pageSize;
-    this.mongoDb.setPaging(this.page, this.pageSize);
     if (!this.data)
       return;
-    this.mongoDb.getTableData(this.data.db, this.data.table);
+    let params: QueryParameters = this.mongoDb.getQueryParameters(this.data.table);
+    params.page = this.page;
+    params.pageSize = this.pageSize;
+    this.mongoDb.getTableData(this.data.db, this.data.table, params);
   }
 
   public export(): void {
@@ -53,12 +57,9 @@ export class DaFooterComponent implements OnInit {
     let csv = [`"${this.data.getHeaders().join('","')}"`];
     for (let rowIdx = 0; rowIdx < this.data.dataSize; rowIdx++) {
       let row = [];
-      for(let col of this.data.getData()) {
+      for (let col of this.data.getData()) {
         row.push(col[rowIdx]);
       }
-      // for (let colIdx = 0; colIdx < this.data.data.length; colIdx++) {
-      //   row.push(this.data.data[colIdx][rowIdx]);
-      // }
       csv.push(`"${row.join('","')}"`);
     }
     navigator.clipboard.writeText(csv.join('\r\n'))

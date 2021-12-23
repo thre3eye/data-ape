@@ -6,7 +6,7 @@
 
 .content {
     width: 100%;
-    overflow: auto;
+    overflow: hidden;
     display: flex;
     justify-content: left;
     align-items: center;
@@ -23,7 +23,7 @@
 
         width: auto;
         display: grid;
-        grid-template-columns: auto auto $filler-width auto auto $filler-width auto $find-key-width auto auto $filler-width auto $sort-key-width auto $filler-width 20pt;
+        grid-template-columns: auto auto $filler-width auto $find-key-width auto auto $filler-width auto $sort-key-width auto $filler-width 20pt;
         column-gap: 5pt;
 
         input,
@@ -34,15 +34,9 @@
             text-align: center;
             color: #dbdbdb;
         }
-        .db-lbl {
-        }
-        .db-val {
-            font-weight: bold;
-        }
         .table-lbl {
         }
         .table-val {
-            //     padding: 0 5pt;
             font-weight: bold;
         }
         .find-lbl {

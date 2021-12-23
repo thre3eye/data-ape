@@ -13,13 +13,8 @@ export class DaMongoService {
   private _data?: TableDescription;
   public data = new Subject<TableDescription>();
 
-  private pageSize: number = 50;
-  private page: number = 1;
-  private selectKey?: string;
-  private selectOp?: string;
-  private selectVal?: string;
   private displayMap: Map<string, string[]> = new Map();
-  private sortMap: Map<string, Map<string, string>> = new Map();
+  private queryMap: Map<string, QueryParameters> = new Map();
 
   constructor(
     private http: HttpClient,
@@ -31,23 +26,23 @@ export class DaMongoService {
     let dbCfg = cfg_.database.find(d_ => db_ === d_.id);
     if (dbCfg) {
       dbCfg.tables.forEach(tbl_ => {
-        tbl_.configs.forEach(tCfg_ => {
-          if ('default' === tCfg_.id) {
-            let cols = tCfg_.columns;
-            if (cols && cols.length > 0) {
-              this.displayMap.set(tbl_.id, cols);
+        tbl_.configs.forEach(tblCfg_ => {
+          if ('default' === tblCfg_.id) {
+            let params = this.queryMap.get(tbl_.id) ?? new QueryParameters();
+            this.queryMap.set(tbl_.id, params);
+
+            let tblCols = tblCfg_.columns;
+            if (tblCols && tblCols.length > 0) {
+              this.displayMap.set(tbl_.id, tblCols);
             } else {
               this.displayMap.delete(tbl_.id);
             }
-            let sort = tCfg_.sort;
-            if (sort && sort.length > 0) {
-              let tsMap = new Map<string, string>();
-              sort.forEach(s_ => {
-                tsMap.set(s_.col, s_.dir);
-              });
-              this.sortMap.set(tbl_.id, tsMap);
+            let tblSort = tblCfg_.sort;
+            if (tblSort && tblSort.length > 0) {
+              params.sort = [];
+              tblSort.forEach(s_ => params.sort?.push({ key: s_.col, dir: s_.dir }));
             } else {
-              this.sortMap.delete(tbl_.id);
+              params.sort = undefined;
             }
           }
         })
@@ -72,27 +67,42 @@ export class DaMongoService {
     return response;
   }
 
-  public getTableData(db_: string, table_: string): void {
-    let params = new HttpParams();
-    params = params.set('page', this.page);
-    params = params.set('page_size', this.pageSize);
-    params = params.set('count_total', true);
-    if (this.selectKey && this.selectOp && this.selectVal) {
-      params = params.set('select_key', this.selectKey);
-      params = params.set('select_op', this.selectOp);
-      params = params.set('select_val', this.selectVal);
+  public getQueryParameters(table_: string): QueryParameters {
+    let params = this.queryMap.get(table_);
+    if (!params) {
+      params = new QueryParameters();
+      this.queryMap.set(table_, params);
     }
-    let sortMap = this.sortMap.get(table_);
-    if (sortMap && sortMap.size > 0) {
-      let sort = sortMap.entries().next().value;
-      let sortKey = sort[0];
-      let sortDir = sort[1];
-      params = params.set('sort_key', sortKey);
-      params = params.set('sort_dir', sortDir);
+    return params;
+  }
+
+  public getTableData(db_: string, table_: string, queryParams_?: QueryParameters): void {
+    let httpParams = new HttpParams();
+    if (queryParams_) {
+      httpParams = httpParams.set('page', queryParams_.page + "");
+      httpParams = httpParams.set('page_size', queryParams_.pageSize + "");
+      if (queryParams_.sort && queryParams_.sort.length > 0) {
+        // NOTE: Prepare for multi sort but not in use yet (20211223)
+        queryParams_.sort.forEach(sort_ => {
+          httpParams = httpParams.set('sort_key', sort_.key);
+          httpParams = httpParams.set('sort_dir', sort_.dir);
+        });
+      }
+      if (queryParams_.select && queryParams_.select.length > 0) {
+        // NOTE: Prepare for multi select but not in use yet (20211223)
+        queryParams_.select.forEach(select_ => {
+          httpParams = httpParams.set('select_key', select_.key);
+          httpParams = httpParams.set('select_op', select_.op);
+          if (select_.val) {
+            httpParams = httpParams.set('select_val', select_.val);
+          }
+        });
+      }
     }
+    httpParams = httpParams.set('count_total', true);
 
     let url = `${environment.server}data/${db_}/${table_}`;
-    let response = this.http.get<TableDescriptionWrapper>(url, { params: params });
+    let response = this.http.get<TableDescriptionWrapper>(url, { params: httpParams });
 
     response.subscribe(data_ => {
       let data = Object.assign(new TableDescriptionImpl(), data_.data);
@@ -101,36 +111,17 @@ export class DaMongoService {
       if (cols && cols.length > 0) {
         data.setActiveColumns(cols);
       }
+
+      let params = new QueryParameters(data);
+      if (queryParams_) {
+        params.select = queryParams_.select;
+        params.highlight = queryParams_.highlight;
+      }
+      this.queryMap.set(table_, params);
+
       this._data = data;
       this.data.next(this._data);
     });
-  }
-
-  public setPaging(page_: number, pageSize_: number): void {
-    if (this.page == page_ && this.pageSize == pageSize_)
-      return;
-    this.page = page_;
-    this.pageSize = pageSize_;
-  }
-
-  public setSelect(key_?: string, op_?: string, val_?: string): void {
-    if (!key_) {
-      this.selectKey = undefined;
-      this.selectOp = undefined;
-      this.selectVal = undefined;
-    } else {
-      this.selectKey = key_;
-      this.selectOp = op_;
-      this.selectVal = val_;
-    }
-  }
-
-  public setSort(table_: string, key_?: string, dir_?: string): void {
-    this.sortMap.delete(table_);
-    if (key_ && dir_) {
-      let sortMap = new Map<string, string>([[key_, dir_]]);
-      this.sortMap.set(table_, sortMap);
-    }
   }
 
   public swapColumns(srcKey_: string, dstKey_: string): void {
@@ -188,6 +179,25 @@ export class DaMongoService {
 
 }
 
+export class QueryParameters {
+
+  constructor(dsc_?: TableDescription) {
+    if (dsc_) {
+      this.page = dsc_.page;
+      this.pageSize = dsc_.pageSize;
+      if (dsc_.sortKey && dsc_.sortDir) {
+        this.sort = [{ key: dsc_.sortKey, dir: dsc_.sortDir }];
+      }
+    }
+  }
+
+  page: number = 1;
+  pageSize: number = 50;
+  select?: { key: string, op: string, val?: string }[];
+  sort?: { key: string, dir: string }[];
+  highlight?: string;
+}
+
 export interface DatabaseDescription {
   dbName: string;
 }
@@ -219,6 +229,7 @@ export interface TableDescription {
   getHeaders(): string[];
   getData(): any[][];
   getStyleClass(i_: number): string;
+
 }
 
 export class TableDescriptionImpl implements TableDescription {
@@ -234,7 +245,7 @@ export class TableDescriptionImpl implements TableDescription {
   public sortKey?: string;
   public sortDir?: string;
   private _activeColumns?: string[];
-  private _activeStyles?: string[]; // Note: For speed
+  private _activeStyles?: string[]; // Note: Pre-selected to speed up table
 
   public getHiddenColumns(): string[] {
     const active = this._activeColumns;

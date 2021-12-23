@@ -1,19 +1,13 @@
+@import "../base.scss";
+
 :host {
-    //   flex: 1 1 auto;
     display: flex;
     height: 100%;
-    //   position: relative;
-    //  top: 0;
-    //   bottom: 0;
 }
 
 .content {
     width: 100%;
-    //    height: 100hv;
     overflow: auto;
-    //  overflow-x: scroll;
-    //   flex: 1;
-    //   display: flexbox;
 
     table {
         width: max-content;
@@ -22,33 +16,41 @@
     .fixed_headers thead th {
         position: sticky;
         top: 0; /* REQUIRED: https://stackoverflow.com/a/43707215 */
-        //   background-color: #333;
         resize: horizontal;
-        overflow: auto;
-        min-width: 70px;
-        background: rgb(157, 187, 214);
+        //   overflow: auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+        background-color: $background-color-header;
     }
 
     tbody tr:hover {
-        background-color: rgb(255, 227, 137);
+        background-color: $background-color-hover;
     }
 
     td,
     th {
         padding: 0pt 4pt;
+     //   clip: auto;
+     //   overflow: hidden;
+     //   text-overflow: ellipsis;
+       // overflow-wrap: break-word;
+     //  white-space: nowrap;
+     //   min-width: 70px;
+     //      width: minmax(min-content, 100pt);
     }
-    //   }
+
     tr {
         &:nth-child(even) {
-            background-color: rgb(242, 242, 242);
+            background-color: $background-color-even;
         }
         &:nth-child(odd) {
-            background-color: rgb(236, 236, 236);
+            background-color: $background-color-odd;
         }
     }
 
     .highlight {
-        background-color: rgb(226, 255, 172);
+        background-color: $background-color-highlight;
     }
 
     .ArrayList,
@@ -68,48 +70,5 @@
     }
     .String {
         text-align: left;
-    }
-
-}
-
-menu {
-    position: absolute;
-    display: block;
-    left: 0px;
-    top: 0px;
-    height: 20px;
-    width: 20px;
-    padding: 0;
-    margin: 0;
-    border: 1px solid;
-    background-color: white;
-    font-weight: normal;
-    white-space: nowrap;
-
-    &#ctxMenu {
-        display: none;
-        z-index: 100;
-    }
-    &:hover {
-        background-color: #eef;
-        font-weight: bold;
-        & > menu {
-            display: block;
-        }
-    }
-    & > menu {
-        display: none;
-        position: relative;
-        top: -20px;
-        left: 100%;
-       // width: 55px;
-       min-width: min-content;
-       padding: 0 5pt;
-    }
-    &[title]:before{
-        content:attr(title);
-    }
-    &:not([title]):before{
-        content:"\2630";
     }
 }

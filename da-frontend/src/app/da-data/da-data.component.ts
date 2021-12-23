@@ -1,4 +1,5 @@
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { environment } from 'src/environments/environment';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, TableDescription } from '../services/da-mongo.service';
 
@@ -12,8 +13,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
   @ViewChild('ctxMenu') ctxMenu?: ElementRef;
 
   public data?: TableDescription;
-  public size: number = 0;
-  public selection?: string;
+  public highlight?: string;
 
   constructor(
     private log: DaLogService,
@@ -52,7 +52,6 @@ export class DaDataComponent implements OnInit, AfterViewInit {
       case 'hide':
         let hide = this.ctxMenu.nativeElement.dataset.id;
         this.mongoDb.hideColumn(hide);
-        //     this.hiddenCols.add(hide);
         this.log.log(`contextMenuClick: ${action}/${hide}`);
         break;
       case 'view':
@@ -69,19 +68,21 @@ export class DaDataComponent implements OnInit, AfterViewInit {
   }
 
   public selectCell(val_: string): void {
-    this.log.log(`dblclick: ${val_}`);
-    this.selection = val_;
+    if (!this.data)
+      return;
+    if (!environment.production) {
+      this.log.log(`selectCell: ${val_}`);
+    }
+    this.highlight = val_;
+    this.mongoDb.getQueryParameters(this.data.table).highlight = this.highlight;
   }
-
-  // public select(idx_: number): void {
-  //   this.log.log(`idx: ${idx_}`);
-  // }
 
   ngOnInit(): void {
     this.mongoDb.data.subscribe(data_ => {
       if (!data_)
         return;
       this.data = data_;
+      this.highlight = this.mongoDb.getQueryParameters(this.data.table).highlight;
     })
   }
 
