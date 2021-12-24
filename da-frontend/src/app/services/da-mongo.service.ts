@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ConfigData, DaConfigService } from './da-config.service';
 import { DaLogService } from './da-log.service';
@@ -47,6 +47,42 @@ export class DaMongoService {
           }
         })
       });
+    }
+  }
+
+  public pocessWebQuery(query_: any): void {
+    if (query_) {
+      let table = query_['table'];
+      if (table) {
+        //     let db = query_['db'];
+        this.log.log(`web query table: ${table}`);
+        this.getDatabase().pipe(take(1)).subscribe(db_ => {
+          let params = this.getQueryParameters(table);
+          let page = query_['page'];
+          if (page) {
+            params.page = page;
+          }
+          let pageSize = query_['pageSize'];
+          if (pageSize) {
+            params.pageSize = pageSize;
+          }
+          let sortStr = <string>query_['sort'];
+          if (sortStr && sortStr.indexOf(':') >= 0) {
+            let sort = sortStr.split(':');
+            params.sort = [{ key: sort[0], dir: sort[1] }];
+          }
+          let selectStr = <string>query_['select'];
+          if (selectStr && selectStr.indexOf(':') >= 0) {
+            let select = selectStr.split(':');
+            params.select = [{ key: select[0], op: select[1], val: select.length > 2 ? select[2] : undefined }];
+          }
+          let highlight = query_['highlight'];
+          if (highlight) {
+            params.highlight = highlight;
+          }
+          this.getTableData(db_.dbName, table, params);
+        });
+      }
     }
   }
 
