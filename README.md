@@ -48,6 +48,8 @@ Missing features can be added if there is interest and related submissions are w
 ### Features:
    - Select, view and page through tabular data (database table, etc)
    - Constrain data with select filters in GUI
+   - Query through URL. Example:  
+     http://&lt;host&gt;:&lt;port&gt;/?db=my_db&table=my_table&page=2&pageSize=40&sort=name:-1&select=name:stw:A&highlight=London
    - Sort data in GUI. Optionally define default sort per db/table in config file
    - Export result as CSV to Clipboard
    - Order columns with drag & drop. Optionally define default order per db/table in config file
