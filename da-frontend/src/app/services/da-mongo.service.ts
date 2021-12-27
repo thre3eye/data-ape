@@ -1,5 +1,4 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { StringMap } from '@angular/compiler/src/compiler_facade_interface';
 import { Injectable } from '@angular/core';
 import { Observable, Subject, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
@@ -73,6 +72,9 @@ export class DaMongoService {
     if (params.sort && params.sort.length > 0) {
       let sort = params.sort[0];
       map.set('sort', `${sort.key}:${sort.dir}`);
+    }
+    if (params.highlight) {
+      map.set('highlight', params.highlight);
     }
     return map;
   }
