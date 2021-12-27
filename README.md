@@ -10,6 +10,8 @@ This tool is mostly aimed at no-sql databases such as (for now only) MongoDB wit
 
 Unterlying code is Java for the server and TypeScript/Angular (no Material) for the web GUI - since these technologies are currently being used in our main projects.
 
+This tool may expose your data due to improper configuration or bugs. Use at your own risk!
+
 ### Instructions
 
 For now this only works with MongoDB and one database defined in the properties:
