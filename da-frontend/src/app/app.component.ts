@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { DaLogService } from './services/da-log.service';
 import { DaMongoService } from './services/da-mongo.service';
@@ -15,9 +16,27 @@ export class AppComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
+    private location: Location,
     private log: DaLogService,
     private mongoDb: DaMongoService
-  ) { }
+  ) {
+    this.mongoDb.data.subscribe(data_ => {
+      if (!data_ || !data_.table)
+        return;
+      let urlMap = this.mongoDb.getWebQueryMap();
+      if (!urlMap)
+        this.location.replaceState('/');
+      else {
+        let pre = '?';
+        let url = '/';
+        urlMap.forEach((val_, key_) => {
+          url = `${url}${pre}${key_}=${val_}`;
+          pre = '&';
+        });
+        this.location.replaceState(url);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params_ => {

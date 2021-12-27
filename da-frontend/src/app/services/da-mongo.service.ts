@@ -1,4 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { StringMap } from '@angular/compiler/src/compiler_facade_interface';
 import { Injectable } from '@angular/core';
 import { Observable, Subject, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
@@ -48,6 +49,32 @@ export class DaMongoService {
         })
       });
     }
+  }
+
+  public getWebQueryMap(): Map<string, string> | undefined {
+    if (!this._data)
+      return undefined;
+    let map = new Map<string, string>();
+    map.set('db', this._data?.db);
+    map.set('table', this._data.table);
+    let params = this.queryMap.get(this._data.table);
+    if (!params)
+      return undefined;
+    map.set('page', params.page + '');
+    map.set('pageSize', params.pageSize + '');
+    if (params.select && params.select.length > 0) {
+      let select = params.select[0];
+      let selectStr = `${select.key}:${select.op}`;
+      if (select.val) {
+        selectStr = `${selectStr}:${select.val}`;
+      }
+      map.set('select', selectStr);
+    }
+    if (params.sort && params.sort.length > 0) {
+      let sort = params.sort[0];
+      map.set('sort', `${sort.key}:${sort.dir}`);
+    }
+    return map;
   }
 
   public pocessWebQuery(query_: any): void {
