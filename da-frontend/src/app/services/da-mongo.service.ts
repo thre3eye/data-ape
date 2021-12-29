@@ -62,16 +62,10 @@ export class DaMongoService {
     map.set('page', params.page + '');
     map.set('pageSize', params.pageSize + '');
     if (params.select && params.select.length > 0) {
-      let select = params.select[0];
-      let selectStr = `${select.key}:${select.op}`;
-      if (select.val) {
-        selectStr = `${selectStr}:${select.val}`;
-      }
-      map.set('select', selectStr);
+      map.set('select', JSON.stringify(params.select));
     }
     if (params.sort && params.sort.length > 0) {
-      let sort = params.sort[0];
-      map.set('sort', `${sort.key}:${sort.dir}`);
+      map.set('sort', JSON.stringify(params.sort));
     }
     if (params.highlight) {
       map.set('highlight', params.highlight);
@@ -97,13 +91,13 @@ export class DaMongoService {
           }
           let sortStr = <string>query_['sort'];
           if (sortStr && sortStr.indexOf(':') >= 0) {
-            let sort = sortStr.split(':');
-            params.sort = [{ key: sort[0], dir: sort[1] }];
+            let sort = JSON.parse(sortStr);
+            params.sort = sort;
           }
           let selectStr = <string>query_['select'];
           if (selectStr && selectStr.indexOf(':') >= 0) {
-            let select = selectStr.split(':');
-            params.select = [{ key: select[0], op: select[1], val: select.length > 2 ? select[2] : undefined }];
+            let select = JSON.parse(selectStr);
+            params.select = select;
           }
           let highlight = query_['highlight'];
           if (highlight) {
@@ -147,21 +141,25 @@ export class DaMongoService {
       httpParams = httpParams.set('page', queryParams_.page + "");
       httpParams = httpParams.set('page_size', queryParams_.pageSize + "");
       if (queryParams_.sort && queryParams_.sort.length > 0) {
-        // NOTE: Prepare for multi sort but not in use yet (20211223)
-        queryParams_.sort.forEach(sort_ => {
-          httpParams = httpParams.set('sort_key', sort_.key);
-          httpParams = httpParams.set('sort_dir', sort_.dir);
-        });
+        // NOTE: Multi sort through URL not GUI (20211228)
+        let sortArray: { key: string, dir: string }[] = [];
+        queryParams_.sort.forEach(sort_ => sortArray.push({ key: sort_.key, dir: sort_.dir }));
+        let sortJson = JSON.stringify(sortArray);
+        httpParams = httpParams.set('sort', sortJson);
       }
       if (queryParams_.select && queryParams_.select.length > 0) {
         // NOTE: Prepare for multi select but not in use yet (20211223)
+        let selectArray: { key: string, op: string, val?: string | number }[] = [];
         queryParams_.select.forEach(select_ => {
+          selectArray.push(select_.val ? { key: select_.key, op: select_.op, val: select_.val } : { key: select_.key, op: select_.op });
           httpParams = httpParams.set('select_key', select_.key);
           httpParams = httpParams.set('select_op', select_.op);
           if (select_.val) {
             httpParams = httpParams.set('select_val', select_.val);
           }
         });
+        let selectJson = JSON.stringify(selectArray);
+        httpParams = httpParams.set('select', selectJson);
       }
     }
     httpParams = httpParams.set('count_total', true);
@@ -179,7 +177,7 @@ export class DaMongoService {
 
       let params = new QueryParameters(data);
       if (queryParams_) {
-        params.select = queryParams_.select;
+        //      params.select = queryParams_.select;
         params.highlight = queryParams_.highlight;
       }
       this.queryMap.set(table_, params);
@@ -250,15 +248,18 @@ export class QueryParameters {
     if (dsc_) {
       this.page = dsc_.page;
       this.pageSize = dsc_.pageSize;
-      if (dsc_.sortKey && dsc_.sortDir) {
-        this.sort = [{ key: dsc_.sortKey, dir: dsc_.sortDir }];
+      if (dsc_.select) {
+        this.select = dsc_.select;
+      }
+      if (dsc_.sort) {
+        this.sort = dsc_.sort;
       }
     }
   }
 
   page: number = 1;
   pageSize: number = 50;
-  select?: { key: string, op: string, val?: string }[];
+  select?: { key: string, op: string, val?: string | number }[];
   sort?: { key: string, dir: string }[];
   highlight?: string;
 }
@@ -285,8 +286,8 @@ export interface TableDescription {
   querySize: number;
   pageSize: number;
   page: number;
-  sortKey?: string;
-  sortDir?: string;
+  select?: { key: string, op: string, val?: string | number }[];
+  sort?: { key: string, dir: string }[];
 
   getHiddenColumns(): string[];
   getActiveColumns(): string[];
@@ -294,6 +295,7 @@ export interface TableDescription {
   getHeaders(): string[];
   getData(): any[][];
   getStyleClass(i_: number): string;
+  getType(header_: string): string | undefined;
 
 }
 
@@ -307,8 +309,8 @@ export class TableDescriptionImpl implements TableDescription {
   public querySize!: number;
   public pageSize!: number;
   public page!: number;
-  public sortKey?: string;
-  public sortDir?: string;
+  public select?: { key: string, op: string, val?: string | number }[];
+  public sort?: { key: string, dir: string }[];
   private _activeColumns?: string[];
   private _activeStyles?: string[]; // Note: Pre-selected to speed up table
 
@@ -321,6 +323,14 @@ export class TableDescriptionImpl implements TableDescription {
     } else {
       return [];
     }
+  }
+
+  public getType(header_: string): string | undefined {
+    if (!header_ || !this.headers)
+      return undefined;
+    let idx = this.headers.indexOf(header_);
+    let type = idx >= 0 ? this.types[idx] : undefined;
+    return type;
   }
 
   public getStyleClass(i_: number): string {

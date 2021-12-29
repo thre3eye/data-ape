@@ -11,10 +11,11 @@
     overflow: hidden;
 
     display: grid;
-    grid-template-rows: $header-height 1fr;
+    grid-template-rows: auto 1fr;
 
     .header {
         grid-row: 1;
+        height: $header-height;
         line-height: $header-height;
         border-bottom: 1pt solid black;
 

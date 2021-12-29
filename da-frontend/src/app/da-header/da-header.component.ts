@@ -11,11 +11,12 @@ import { DaMongoService, QueryParameters, TableDescription } from '../services/d
 export class DaHeaderComponent implements OnInit {
 
   public data?: TableDescription;
-  public selectKey: string = '__all__';
-  public selectOp: string = 'eq';
-  public selectVal?: string;
-  public sortKey: string = '__none__';
-  public sortDir: string = '1';
+  public select: { key: string, op: string, val?: string | number }[] = [{ key: '__all__', op: 'eq' }];
+  public sort: { key: string, dir: string }[] = [{ key: '__none__', dir: '1' }];
+  // public sortKey: string = '__none__';
+  // public sortDir: string = '1';
+
+  public isSlim: boolean = true;
 
   public findOperators: string[][] = [
     ['>', 'gt'],
@@ -42,42 +43,82 @@ export class DaHeaderComponent implements OnInit {
       this.data = data_;
       let params = this.mongoDb.getQueryParameters(this.data.table);
       if (params && params.sort && params.sort.length > 0) {
-        let sort = params.sort[0];
-        this.sortKey = sort.key;
-        this.sortDir = sort.dir;
+        this.sort = [...params.sort];
+        if (params.sort.length > 1) {
+          this.isSlim = false;
+        }
       } else {
-        this.sortKey = '__none__';
-        this.sortDir = '1';
+        this.sort = [{ key: '__none__', dir: '1' }];
       }
       if (params && params.select && params.select.length > 0) {
-        let select = params.select[0];
-        this.selectKey = select.key;
-        this.selectOp = select.op;
-        this.selectVal = select.val;
+        this.select = [...params.select];
+        if (params.select.length > 1) {
+          this.isSlim = false;
+        }
       } else {
-        this.selectKey = '__all__';
-        this.selectOp = 'eq';
-        this.selectVal = undefined;
+        this.select = [{ key: '__all__', op: 'eq' }];
       }
     });
+  }
+
+  public addSelect(idx_: number): void {
+    if (idx_ == 0) {
+      if ('__all__' !== this.select[this.select.length - 1].key) {
+        this.select.push({ key: '__all__', op: 'eq' });
+      }
+    } else {
+      this.select.splice(idx_, 1);
+    }
+    this.isSlim = this.select.length == 1 && this.sort.length == 1;
+  }
+
+  public addSort(idx_: number): void {
+    if (idx_ == 0) {
+      if ('__none__' !== this.sort[this.sort.length - 1].key) {
+        this.sort.push({ key: '__none__', dir: '1' });
+      }
+    } else {
+      this.sort.splice(idx_, 1);
+    }
+    this.isSlim = this.select.length == 1 && this.sort.length == 1;
   }
 
   public submit(): void {
     if (!this.data)
       return;
     if (!environment.production) {
-      this.log.log(`Select key: ${this.selectKey}`);
-      this.log.log(`Select op : ${this.selectOp}`);
-      this.log.log(`Select val: ${this.selectVal}`);
-      this.log.log(`Sort   key:  ${this.sortKey}`);
-      this.log.log(`Sort   dir:  ${this.sortDir}`);
+      this.log.log(`Select: ${JSON.stringify(this.select)}`);
+      this.log.log(`Sort  :  ${JSON.stringify(this.sort)}`);
     }
 
     let params: QueryParameters = this.mongoDb.getQueryParameters(this.data.table);
-    let isSelect = !this.selectKey || !this.selectOp || '__all__' !== this.selectKey;
-    params.select = isSelect ? [{ key: this.selectKey, op: this.selectOp, val: this.selectVal }] : undefined;
-    let isSort = !this.sortKey || '__none__' !== this.sortKey;
-    params.sort = isSort ? [{ key: this.sortKey, dir: this.sortDir }] : undefined;
+    params.select = undefined;
+    let isSelect = this.select && this.select.length > 0 && '__all__' !== this.select[0].key;
+    if (isSelect) {
+      let select: { key: string, op: string, val?: string | number }[] = [];
+      this.select.forEach(sel_ => {
+        if ('__all__' !== sel_.key) {
+          let type = this.data?.getType(sel_.key);
+          if (sel_.val && type && ['Double', 'Integer', 'Long'].indexOf(type) >= 0) {
+            sel_.val = +sel_.val;
+          }
+          select.push(sel_);
+        }
+      });
+      params.select = select;
+    }
+
+    params.sort = undefined;
+    let isSort = this.sort && this.sort.length > 0 && '__none__' !== this.sort[0].key;
+    if (isSort) {
+      let sort: { key: string, dir: string }[] = [];
+      this.sort.forEach(srt_ => {
+        if ('__none__' !== srt_.key) {
+          sort.push(srt_);
+        }
+      });
+      params.sort = sort;
+    }
 
     this.mongoDb.getTableData(this.data.db, this.data.table, params);
   }

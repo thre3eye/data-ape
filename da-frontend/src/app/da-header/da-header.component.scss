@@ -1,19 +1,54 @@
+@import "../base.scss";
+
 :host {
     display: flex;
     height: 100%;
     width: 100%;
 }
 
+@mixin da-button($button-size, $border-radius: 3pt, $border-color: grey) {
+    @content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    div {
+        width: $button-size;
+        height: $button-size;
+        border: 1pt solid $border-color;
+        border-radius: $border-radius;
+        text-align: center;
+        line-height: $button-size;
+        font-size: calc($button-size * 2 / 3);
+        cursor: pointer;
+
+        &:hover {
+            background-color: rgb(255, 243, 173);
+        }
+        &:active {
+            color: red;
+        }
+    }
+}
+
+.slim {
+    height: $header-height;
+}
+
+.tall {
+    height: auto;
+}
+
 .content {
     width: 100%;
     overflow: hidden;
-    display: flex;
+    //  display: flex;
     justify-content: left;
     align-items: center;
-    padding-left: 20pt;
+    padding: 0 10pt;
 
     .selection {
-        $font-family: 'Roboto Condensed', sans-serif;;
+        $font-family: "Roboto Condensed", sans-serif;
         $filler-width: 10pt;
         $find-key-width: 100pt;
         $find-op-width: 55pt;
@@ -21,9 +56,10 @@
         $sort-key-width: $find-key-width;
         $sort-op-width: $find-op-width;
 
-        width: auto;
+        width: 100%;
         display: grid;
-        grid-template-columns: auto auto $filler-width auto $find-key-width auto auto $filler-width auto $sort-key-width auto $filler-width 20pt;
+        //     grid-template-columns: auto auto $filler-width auto $find-key-width auto auto $filler-width auto $sort-key-width auto $filler-width 20pt 1fr 40pt;
+        grid-template-columns: auto auto auto auto auto auto auto auto auto auto auto auto auto auto 20pt 1fr 40pt;
         column-gap: 5pt;
 
         input,
@@ -31,48 +67,96 @@
             font-family: $font-family;
         }
         .filler {
+            grid-row: 1;
+            width: $filler-width;
             text-align: center;
             color: #dbdbdb;
+            &.filler-1 {
+                grid-column: 3;
+            }
+            &.filler-2 {
+                grid-column: 9;
+            }
+            &.filler-3 {
+                grid-column: 14;
+            }
         }
         .table-lbl {
+            grid-column: 1;
         }
         .table-val {
+            grid-column: 2;
             font-weight: bold;
         }
         .find-lbl {
+            grid-row: 1;
+            grid-column: 4;
         }
 
         .find-key {
+            grid-column: 5;
+            width: $find-key-width;
             select {
                 max-width: $find-key-width;
             }
         }
         .find-op {
+            grid-column: 6;
             select {
                 max-width: $find-op-width;
             }
         }
         .find-val {
+            grid-column: 7;
             input {
                 max-width: $find-val-width;
                 //          font-family: $font-family;
             }
         }
+        .select-button {
+            grid-column: 8;
+            @include da-button(12pt, 6pt, rgba(0, 0, 0, 0));
+        }
+
         .sort-lbl {
+            grid-row: 1;
+            grid-column: 10;
         }
         .sort-key {
+            grid-column: 11;
+            width: $sort-key-width;
             select {
                 max-width: $sort-key-width;
                 //          font-family: $font-family;
             }
         }
         .sort-op {
+            grid-column: 12;
             select {
                 max-width: $sort-op-width;
                 //           font-family: $font-family;
             }
         }
+        .sort-button {
+            grid-column: 13;
+            @include da-button(12pt, 6pt, rgba(0, 0, 0, 0));
+        }
         .submit {
+            grid-column: 15;
+            grid-row: 1;
+        }
+
+        @mixin test {
+            height: $htest;
+        }
+
+        .panel-button {
+            grid-row: 1;
+            grid-column: -1;
+            @include da-button(18pt) {
+                //          $button-size: 18pt;
+            }
+            //    @extend .da-button;
         }
     }
 }

@@ -6,11 +6,12 @@ import static com.mongodb.client.model.Filters.gte;
 import static com.mongodb.client.model.Filters.lt;
 import static com.mongodb.client.model.Filters.lte;
 import static com.mongodb.client.model.Filters.regex;
-//import static com.mongodb.client.model.Filters.gt;
-//import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Sorts.ascending;
 import static com.mongodb.client.model.Sorts.descending;
+import static com.mongodb.client.model.Sorts.orderBy;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +23,8 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import com.isoplane.dataape.DataApeServer.ConfigUtil;
+import com.isoplane.dataape.JsonHelper.SelectParam;
+import com.isoplane.dataape.JsonHelper.SortParam;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
@@ -39,6 +42,7 @@ public class MongoDriver {
 
     private ConfigUtil _config;
     private MongoClient _mongo;
+    //  private Gson _gson;
 
     public MongoDriver(ConfigUtil config_) {
         this._config = config_;
@@ -78,51 +82,61 @@ public class MongoDriver {
         return tables;
     }
 
-    public Map<String, Object> getData(String database_, String table_, Map<String, String> params_) {
+    public Map<String, Object> getData(String database_, String table_, Map<String, String> params_)
+            throws IOException {
         boolean isCount = MapUtils.getBooleanValue(params_, "count_total", true);
         int page = MapUtils.getIntValue(params_, "page", 1);
         int pageSize = MapUtils.getIntValue(params_, "page_size", 50);
-        String sortKey = MapUtils.getString(params_, "sort_key");
-        int sortDir = MapUtils.getIntValue(params_, "sort_dir", -1);
-        String selectKey = MapUtils.getString(params_, "select_key");
-        String selectOp = MapUtils.getString(params_, "select_op");
-        Object selectVal = MapUtils.getObject(params_, "select_val");
+        String selectJson = MapUtils.getString(params_, "select");
+        List<SelectParam> select = JsonHelper.toSelectParam(selectJson);
+        String sortJson = MapUtils.getString(params_, "sort");
+        List<SortParam> sort = JsonHelper.toSortParam(sortJson);
 
         Map<String, List<Object>> dataTable = new HashMap<>();
         MongoDatabase db = this._mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
         Bson query = new BsonDocument();
-        if (selectKey != null) {
-            query = switch (selectOp) {
-                case "gt" -> gt(selectKey, selectVal);
-                case "gte" -> gte(selectKey, selectVal);
-                case "eq" -> eq(selectKey, selectVal);
-                case "lte" -> lte(selectKey, selectVal);
-                case "lt" -> lt(selectKey, selectVal);
-                case "stw" -> {
-                    Pattern pattern = Pattern.compile("^" + Pattern.quote(selectVal.toString()),
-                            Pattern.CASE_INSENSITIVE);
-                    yield regex(selectKey, pattern);
-                }
-                case "ctn" -> {
-                    Pattern pattern = Pattern.compile(".*" + Pattern.quote(selectVal.toString()) + ".*",
-                            Pattern.CASE_INSENSITIVE);
-                    yield regex(selectKey, pattern);
-                }
-                case "edw" -> {
-                    Pattern pattern = Pattern.compile(Pattern.quote(selectVal.toString()) + "$",
-                            Pattern.CASE_INSENSITIVE);
-                    yield regex(selectKey, pattern);
-                }
-                default -> query;
-            };
+        if (select != null && !select.isEmpty()) {
+            List<Bson> selects = new ArrayList<>();
+            for (SelectParam selectParam : select) {
+                var q = switch (selectParam.op) {
+                    case "gt" -> gt(selectParam.key, selectParam.val);
+                    case "gte" -> gte(selectParam.key, selectParam.val);
+                    case "eq" -> eq(selectParam.key, selectParam.val);
+                    case "lte" -> lte(selectParam.key, selectParam.val);
+                    case "lt" -> lt(selectParam.key, selectParam.val);
+                    case "stw" -> {
+                        Pattern pattern = Pattern.compile("^" + Pattern.quote(selectParam.val.toString()),
+                                Pattern.CASE_INSENSITIVE);
+                        yield regex(selectParam.key, pattern);
+                    }
+                    case "ctn" -> {
+                        Pattern pattern = Pattern.compile(".*" + Pattern.quote(selectParam.val.toString()) + ".*",
+                                Pattern.CASE_INSENSITIVE);
+                        yield regex(selectParam.key, pattern);
+                    }
+                    case "edw" -> {
+                        Pattern pattern = Pattern.compile(Pattern.quote(selectParam.val.toString()) + "$",
+                                Pattern.CASE_INSENSITIVE);
+                        yield regex(selectParam.key, pattern);
+                    }
+                    default -> query;
+                };
+                selects.add(q);
+            }
+            query = and(selects);
         }
-
         long queryCount = isCount ? collection.countDocuments(query) : -1;
 
         FindIterable<Document> documents = collection.find(query);
-        if (sortKey != null) {
-            documents = sortDir < 0 ? documents.sort(descending(sortKey)) : documents.sort(ascending(sortKey));
+        if (sort != null && !sort.isEmpty()) {
+            List<Bson> sorts = new ArrayList<>();
+            for (SortParam sortParam : sort) {
+                sorts.add(sortParam.dir < 0
+                        ? descending(sortParam.key)
+                        : ascending(sortParam.key));
+            }
+            documents = documents.sort(orderBy(sorts));
         }
         documents = documents.skip(pageSize * (page - 1)).limit(pageSize);
         Map<String, Object> tableDescription = new HashMap<>();
@@ -137,9 +151,11 @@ public class MongoDriver {
         tableDescription.put("querySize", queryCount);
         tableDescription.put("pageSize", pageSize);
         tableDescription.put("page", page);
-        if (sortKey != null) {
-            tableDescription.put("sortKey", sortKey);
-            tableDescription.put("sortDir", sortDir);
+        if (select != null && !select.isEmpty()) {
+            tableDescription.put("select", select);
+        }
+        if (sort != null && !sort.isEmpty()) {
+            tableDescription.put("sort", sort);
         }
 
         int count = 0;

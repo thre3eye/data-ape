@@ -10,25 +10,19 @@
     overflow: hidden;
     display: block;
     overflow: hidden;
-   // display: grid;
-  //  display: grid;
-   // grid-template-columns: 1fr;
-  //  grid-template-rows: 1fr;
 
     .sidebar-content {
         position: relative;
         height: 100%;
         width: 100%;
         overflow: hidden;
-    //    grid-column: 1;
-    //    grid-row: 1;
     }
 }
 
 .main-area {
     overflow: hidden;
     display: grid;
-    grid-template-rows: 26pt 1fr 28pt;
+    grid-template-rows: auto 1fr 28pt;
 
     .header-content {
         grid-row: 1;
@@ -46,39 +40,8 @@
     .footer-content {
         grid-row: 3;
         $height: 28pt;
-        //   flex: 0 0 $height;
-        //   display: flex;
 
         border-top: 1pt solid black;
         line-height: $height;
     }
 }
-
-// header {
-//     $height: 26pt;
-//     flex: 0 0 $height;
-//     display: flex;
-
-//     border-bottom: 1pt solid black;
-//     line-height: $height;
-// }
-
-// main {
-//     flex: 1;
-//     overflow: hidden;
-//     display: flex;
-
-//     .main-content {
-//         display: flex;
-//         flex-direction: column;
-//     }
-// }
-
-// footer {
-//     $height: 28pt;
-//     flex: 0 0 $height;
-//     display: flex;
-
-//     border-top: 1pt solid black;
-//     line-height: $height;
-// }

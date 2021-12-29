@@ -1,57 +1,70 @@
-<div class="content">
+<div class="content  slim" [ngClass]="{'slim': isSlim, 'tall': !isSlim}">
     <div *ngIf="data && data.table" class="selection">
 
-        <div class="table-lbl">Table:</div>
-        <div class="table-val">{{data.table}}</div>
+        <div class="table-lbl" style="grid-row: 1;">Table:</div>
+        <div class="table-val" style="grid-row: 1;">{{data.table}}</div>
 
-        <div class="filler">&#65372;</div>
+        <div class="filler filler-1">&#65372;</div>
 
         <div class="find-lbl">Select:</div>
-        <div class="find-key">
-            <select [(ngModel)]="selectKey">
-                <!-- (ngModelChange)="setSelectKey($event)" -->
-                <option value="__all__">--All--</option>
-                <option *ngFor="let header of data.headers" value={{header}}>
-                    {{header}}
-                </option>
-            </select>
-        </div>
-        <div class="find-op">
-            <select *ngIf="selectKey != '__all__'" [(ngModel)]="selectOp">
-                <option *ngFor="let op of findOperators" value={{op[1]}}>
-                    {{op[0]}}
-                </option>
-            </select>
-        </div>
-        <div class="find-val">
-            <input *ngIf="selectKey != '__all__'" class="find-inp" type="text" [(ngModel)]="selectVal" (keyup.enter)="submit()">
-            <!-- (keyup.enter)="setSelectValue()" -->
-        </div>
+        <ng-container *ngFor="let find of select, let i = index">
+            <div class="find-key" [ngStyle]="{'grid-row': i+1}">
+                <select [(ngModel)]="select[i].key" title="{{select[i].key}}">
+                    <option value="__all__">--All--</option>
+                    <option *ngFor="let header of data.headers" value={{header}}>
+                        {{header}}
+                    </option>
+                </select>
+            </div>
+            <div class="find-op" [ngStyle]="{'grid-row': i+1}">
+                <select *ngIf="select[i].key != '__all__'" [(ngModel)]="select[i].op">
+                    <option *ngFor="let op of findOperators" value={{op[1]}}>
+                        {{op[0]}}
+                    </option>
+                </select>
+            </div>
+            <div class="find-val" [ngStyle]="{'grid-row': i+1}">
+                <input *ngIf="select[i].key != '__all__'" class="find-inp" type="text" [(ngModel)]="select[i].val"
+                    (keyup.enter)="submit()">
+            </div>
+            <div class="select-button" *ngIf="'__all__' !== select[0].key" [ngStyle]="{'grid-row': i+1}">
+                <div class="button" (click)="addSelect(i)">{{i == 0 ? '&#8853;':'&#8854;'}}</div> <!-- 128465 -->
+            </div>
+        </ng-container>
 
-        <div class="filler">&#65372;</div>
+
+        <div class="filler filler-2">&#65372;</div>
 
         <div class="sort-lbl">Sort:</div>
-        <div class="sort-key">
-            <select [(ngModel)]="sortKey">
-                <!-- (ngModelChange)="setSortKey($event)" -->
-                <option value="__none__">--None--</option>
-                <option *ngFor="let header of data.headers" value={{header}}>
-                    {{header}}
-                </option>
-            </select>
-        </div>
-        <div class="sort-op">
-            <select *ngIf="sortKey != '__none__'" [(ngModel)]="sortDir">
-                <option *ngFor="let op of sortOperators" value={{op[1]}}>
-                    {{op[0]}}
-                </option>
-            </select>
-        </div>
+        <ng-container *ngFor="let srt of sort, let i = index">
+            <div class="sort-key" [ngStyle]="{'grid-row': i+1}">
+                <select [(ngModel)]="sort[i].key" title="{{sort[i].key}}">
+                    <option value="__none__">--None--</option>
+                    <option *ngFor="let header of data.headers" value={{header}}>
+                        {{header}}
+                    </option>
+                </select>
+            </div>
+            <div class="sort-op" [ngStyle]="{'grid-row': i+1}">
+                <select *ngIf="sort[i].key != '__none__'" [(ngModel)]="sort[i].dir">
+                    <option *ngFor="let op of sortOperators" value={{op[1]}}>
+                        {{op[0]}}
+                    </option>
+                </select>
+            </div>
+            <div class="sort-button" *ngIf="'__all__' !== select[0].key" [ngStyle]="{'grid-row': i+1}">
+                <div class="button" (click)="addSort(i)">{{i == 0 ? '&#8853;':'&#8854;'}}</div> <!-- 128465 -->
+            </div>
+        </ng-container>
 
-        <div class="filler">&#65372;</div>
+        <div class="filler filler-3">&#65372;</div>
 
         <div class="submit">
             <button (click)="submit()" title="Execute query...">⇒</button>
+        </div>
+
+        <div class="panel-button" *ngIf="select.length > 1">
+            <div class="button" (click)="isSlim = !isSlim">{{isSlim ? '&#9660;':'&#9650;'}}</div>
         </div>
 
     </div>
