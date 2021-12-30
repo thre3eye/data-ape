@@ -11,7 +11,7 @@
             <div class="find-key" [ngStyle]="{'grid-row': i+1}">
                 <select [(ngModel)]="select[i].key" title="{{select[i].key}}">
                     <option value="__all__">--All--</option>
-                    <option *ngFor="let header of data.headers" value={{header}}>
+                    <option *ngFor="let header of headers" value={{header}}>
                         {{header}}
                     </option>
                 </select>
@@ -27,7 +27,8 @@
                 <input *ngIf="select[i].key != '__all__'" class="find-inp" type="text" [(ngModel)]="select[i].val"
                     (keyup.enter)="submit()">
             </div>
-            <div class="select-button" *ngIf="'__all__' !== select[0].key" [ngStyle]="{'grid-row': i+1}">
+            <div class="select-button" *ngIf="'__all__' !== select[0].key" [ngStyle]="{'grid-row': i+1}"
+                title="{{i==0 ? 'Add' : 'Remove'}} select...">
                 <div class="button" (click)="addSelect(i)">{{i == 0 ? '&#8853;':'&#8854;'}}</div> <!-- 128465 -->
             </div>
         </ng-container>
@@ -40,7 +41,7 @@
             <div class="sort-key" [ngStyle]="{'grid-row': i+1}">
                 <select [(ngModel)]="sort[i].key" title="{{sort[i].key}}">
                     <option value="__none__">--None--</option>
-                    <option *ngFor="let header of data.headers" value={{header}}>
+                    <option *ngFor="let header of headers" value={{header}}>
                         {{header}}
                     </option>
                 </select>
@@ -52,19 +53,21 @@
                     </option>
                 </select>
             </div>
-            <div class="sort-button" *ngIf="'__all__' !== select[0].key" [ngStyle]="{'grid-row': i+1}">
+            <div class="sort-button" *ngIf="'__all__' !== select[0].key" [ngStyle]="{'grid-row': i+1}"
+                title="{{i==0 ? 'Add' : 'Remove'}} sort...">
                 <div class="button" (click)="addSort(i)">{{i == 0 ? '&#8853;':'&#8854;'}}</div> <!-- 128465 -->
             </div>
         </ng-container>
 
         <div class="filler filler-3">&#65372;</div>
 
-        <div class="submit">
-            <button (click)="submit()" title="Execute query...">⇒</button>
+        <div class="submit-button">
+            <div class="button" (click)="submit()" title="Execute query...">⇒</div>
         </div>
 
-        <div class="panel-button" *ngIf="select.length > 1">
-            <div class="button" (click)="isSlim = !isSlim">{{isSlim ? '&#9660;':'&#9650;'}}</div>
+        <div class="panel-button" *ngIf="select.length > 1 || sort.length > 1">
+            <div class="button" (click)="isSlim = !isSlim" title="{{isSlim ? 'Expand' : 'Collapse'}} panel...">{{isSlim
+                ? '&#9660;':'&#9650;'}}</div>
         </div>
 
     </div>

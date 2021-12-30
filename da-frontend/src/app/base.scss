@@ -9,6 +9,30 @@ $background-color-odd: rgb(236, 236, 236);
 $background-color-highlight: rgb(226, 255, 172);
 $background-color-hover: rgb(255, 227, 137);
 
+@mixin da-button($button-size, $border-radius: 3pt, $border-color: grey) {
+    @content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    div {
+        width: $button-size;
+        height: $button-size;
+        border: 1pt solid $border-color;
+        border-radius: $border-radius;
+        text-align: center;
+        line-height: $button-size;
+        font-size: calc($button-size * 0.75);// 2 / 3);
+        cursor: pointer;
+
+        &:hover {
+            background-color: rgb(255, 243, 173);
+        }
+        &:active {
+            color: red;
+        }
+    }
+}
 
 menu {
     position: absolute;

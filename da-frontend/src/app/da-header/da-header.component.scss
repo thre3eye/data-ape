@@ -6,31 +6,6 @@
     width: 100%;
 }
 
-@mixin da-button($button-size, $border-radius: 3pt, $border-color: grey) {
-    @content;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    div {
-        width: $button-size;
-        height: $button-size;
-        border: 1pt solid $border-color;
-        border-radius: $border-radius;
-        text-align: center;
-        line-height: $button-size;
-        font-size: calc($button-size * 2 / 3);
-        cursor: pointer;
-
-        &:hover {
-            background-color: rgb(255, 243, 173);
-        }
-        &:active {
-            color: red;
-        }
-    }
-}
-
 .slim {
     height: $header-height;
 }
@@ -61,6 +36,10 @@
         //     grid-template-columns: auto auto $filler-width auto $find-key-width auto auto $filler-width auto $sort-key-width auto $filler-width 20pt 1fr 40pt;
         grid-template-columns: auto auto auto auto auto auto auto auto auto auto auto auto auto auto 20pt 1fr 40pt;
         column-gap: 5pt;
+        row-gap: 3pt;
+
+        padding: 5pt 0;
+        line-height: 18pt;
 
         input,
         select {
@@ -141,6 +120,11 @@
             grid-column: 13;
             @include da-button(12pt, 6pt, rgba(0, 0, 0, 0));
         }
+        .submit-button {
+            grid-column: 15;
+            grid-row: 1;
+            @include da-button(14pt);
+        }
         .submit {
             grid-column: 15;
             grid-row: 1;
@@ -153,10 +137,7 @@
         .panel-button {
             grid-row: 1;
             grid-column: -1;
-            @include da-button(18pt) {
-                //          $button-size: 18pt;
-            }
-            //    @extend .da-button;
+            @include da-button(14pt);
         }
     }
 }
