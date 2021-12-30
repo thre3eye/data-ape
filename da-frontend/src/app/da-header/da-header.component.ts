@@ -10,13 +10,13 @@ import { DaMongoService, QueryParameters, TableDescription } from '../services/d
 })
 export class DaHeaderComponent implements OnInit {
 
-  public clazz = DaHeaderComponent;
+  public readonly sortNull = { key: '__none__', dir: '1' };
+  public readonly selectNull = { key: '__all__', op: 'eq' };
+
   public data?: TableDescription;
   public headers: string[] = [];
-  public select: { key: string, op: string, val?: string | number }[] = [{ key: '__all__', op: 'eq' }];
-  public sort: { key: string, dir: string }[] = [{ key: '__none__', dir: '1' }];
-  public static readonly sortNull = { key: '__none__', dir: '1' };
-  public readonly selectNull = { key: '__all__', op: 'eq' };
+  public select: { key: string, op: string, val?: string | number }[] = this.resetSelect();
+  public sort: { key: string, dir: string }[] = this.resetSort();
 
   public isSlim: boolean = true;
 
@@ -27,7 +27,8 @@ export class DaHeaderComponent implements OnInit {
     ['<=', 'lte'],
     ['<', 'lt'],
     ['starts', 'stw'],
-    ['contains', 'ctn']
+    ['contains', 'ctn'],
+    ['ends', 'edw']
   ];
 
   public sortOperators: string[][] = [
@@ -46,17 +47,27 @@ export class DaHeaderComponent implements OnInit {
       this.headers = data_.headers ? [...data_.headers].sort() : [];
       let params = this.mongoDb.getQueryParameters(this.data.table);
       let isSort = params && params.sort && params.sort.length > 0;
-      this.sort = isSort && params.sort /* otherwise won't compile */ ? [...params.sort] : [DaHeaderComponent.sortNull];
+      this.sort = isSort && params.sort /* req'd to compile */ ? [...params.sort] : this.resetSort();
       let isSelect = params && params.select && params.select.length > 0;
-      this.select = isSelect && params.select  /* otherwise won't compile */ ? [...params.select] : [this.selectNull];
+      this.select = isSelect && params.select  /* req'd to compile */ ? [...params.select] : this.resetSelect();
       this.isSlim = this.select.length <= 1 && this.sort.length <= 1;
     });
+  }
+
+  private resetSelect(): { key: string, op: string, val?: string | number | undefined }[] {
+    let select = Object.assign({}, this.selectNull);
+    return [select];
+  }
+
+  private resetSort(): { key: string, dir: string }[] {
+    let sort = Object.assign({}, this.sortNull);
+    return [sort];
   }
 
   public addSelect(idx_: number): void {
     if (idx_ == 0) {
       if (this.selectNull.key !== this.select[this.select.length - 1].key) {
-        this.select.push(this.selectNull);
+        this.select.push(this.resetSelect()[0]);
       }
     } else {
       this.select.splice(idx_, 1);
@@ -66,8 +77,8 @@ export class DaHeaderComponent implements OnInit {
 
   public addSort(idx_: number): void {
     if (idx_ == 0) {
-      if (DaHeaderComponent.sortNull.key !== this.sort[this.sort.length - 1].key) {
-        this.sort.push(DaHeaderComponent.sortNull);
+      if (this.sortNull.key !== this.sort[this.sort.length - 1].key) {
+        this.sort.push(this.resetSort()[0]);
       }
     } else {
       this.sort.splice(idx_, 1);
@@ -101,11 +112,11 @@ export class DaHeaderComponent implements OnInit {
     }
 
     params.sort = undefined;
-    let isSort = this.sort && this.sort.length > 0 && DaHeaderComponent.sortNull.key !== this.sort[0].key;
+    let isSort = this.sort && this.sort.length > 0 && this.sortNull.key !== this.sort[0].key;
     if (isSort) {
       let sort: { key: string, dir: string }[] = [];
       this.sort.forEach(srt_ => {
-        if (DaHeaderComponent.sortNull.key !== srt_.key) {
+        if (this.sortNull.key !== srt_.key) {
           sort.push(srt_);
         }
       });
