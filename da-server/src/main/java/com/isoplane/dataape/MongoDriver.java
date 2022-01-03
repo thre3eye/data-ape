@@ -127,18 +127,22 @@ public class MongoDriver {
             query = and(selects);
         }
         long queryCount = isCount ? collection.countDocuments(query) : -1;
-
-        FindIterable<Document> documents = collection.find(query);
-        if (sort != null && !sort.isEmpty()) {
-            List<Bson> sorts = new ArrayList<>();
-            for (SortParam sortParam : sort) {
-                sorts.add(sortParam.dir < 0
-                        ? descending(sortParam.key)
-                        : ascending(sortParam.key));
+        FindIterable<Document> documents;
+        if (queryCount > 0) {
+            documents = collection.find(query);
+            if (sort != null && !sort.isEmpty()) {
+                List<Bson> sorts = new ArrayList<>();
+                for (SortParam sortParam : sort) {
+                    sorts.add(sortParam.dir < 0
+                            ? descending(sortParam.key)
+                            : ascending(sortParam.key));
+                }
+                documents = documents.sort(orderBy(sorts));
             }
-            documents = documents.sort(orderBy(sorts));
+            documents = documents.skip(pageSize * (page - 1)).limit(pageSize);
+        } else {
+            documents = collection.find().limit(1);
         }
-        documents = documents.skip(pageSize * (page - 1)).limit(pageSize);
         Map<String, Object> tableDescription = new HashMap<>();
         List<String> headers = new ArrayList<>();
         List<String> types = new ArrayList<>();
@@ -147,7 +151,7 @@ public class MongoDriver {
         tableDescription.put("table", table_);
         tableDescription.put("headers", headers);
         tableDescription.put("types", types);
-        tableDescription.put("data", data);
+        tableDescription.put("data", queryCount > 0 ? data : new ArrayList<>());
         tableDescription.put("querySize", queryCount);
         tableDescription.put("pageSize", pageSize);
         tableDescription.put("page", page);
@@ -198,7 +202,7 @@ public class MongoDriver {
             }
             count++;
         }
-        tableDescription.put("dataSize", count);
+        tableDescription.put("dataSize", queryCount > 0 ? count : 0);
         return tableDescription;
     }
 
