@@ -1,0 +1,116 @@
+version: "3.9"
+
+volumes:
+  alphatrade_config:
+    external: true
+  alphatrade_logs:
+    external: true
+
+services:
+  at-source:
+    hostname: at-source
+    container_name: at-source
+    restart: always
+    ports:
+      - "18082:18082"
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-source:1.0-SNAPSHOT"
+    environment:
+      LD_LIBRARY_PATH: /docker-data/lib
+
+  at-gateway:
+    hostname: at-gateway
+    container_name: at-gateway
+    restart: always
+    ports:
+      - "8888:8888"
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-gateway2:1.0-SNAPSHOT"
+    depends_on:
+      - at-source
+
+  at-svc-tradier:
+    hostname: at-svc-tradier
+    container_name: at-svc-tradier
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-svc-tradier:1.0-SNAPSHOT"
+
+  at-svc-ameritrade:
+    hostname: at-svc-ameritrade
+    container_name: at-svc-ameritrade
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-svc-ameritrade:1.0-SNAPSHOT"
+
+  at-svc-ally:
+    hostname: at-svc-ally
+    container_name: at-svc-ally
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-svc-ally:1.0-SNAPSHOT"
+
+  at-svc-crypto:
+    hostname: at-svc-crypto
+    container_name: at-svc-crypto
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-svc-crypto:1.0-SNAPSHOT"
+
+  at-svc-push-notifications:
+    hostname: at-svc-push-notifications
+    container_name: at-svc-push-notifications
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-svc-push-notifications:0.0.1-SNAPSHOT"
+
+  at-svc-collector:
+    hostname: at-svc-collector
+    container_name: at-svc-collector
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-svc-collector:0.0.1-SNAPSHOT"
+
+  at-sink-market-data:
+    hostname: at-sink-market-data
+    container_name: at-sink-market-data
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-sink-market-data:0.0.1-SNAPSHOT"
+
+  at-svc-alerts:
+    hostname: at-svc-alerts
+    container_name: at-svc-alerts
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-svc-alerts:0.0.1-SNAPSHOT"
+
+  at-svc-user-market:
+    hostname: at-svc-user-market
+    container_name: at-svc-user-market
+    restart: always
+    volumes:
+      - alphatrade_config:/docker-data/alphatrade
+      - alphatrade_logs:/docker-data/alphatrade_logs
+    image: "at-svc-user-market:0.0.1-SNAPSHOT"
+
