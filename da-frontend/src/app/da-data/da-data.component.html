@@ -1,16 +1,17 @@
-<div class="content">
+<!-- <div class="content">
     <table *ngIf="data" class="fixed_headers">
         <thead>
             <tr>
                 <th *ngFor="let header of data.getHeaders()" draggable="true" (dragstart)="onDragStart($event, header)"
                     (dragover)="$event.preventDefault()" (drop)="$event.preventDefault();drop($event);"
-                    (contextmenu)="$event.preventDefault();contextMenu($event, header);">
+                    (contextmenu)="$event.preventDefault();headerContextMenu($event, header);">
                     <div class="header-cell" title="{{header}}">{{header}}</div>
                 </th>
             </tr>
         </thead>
         <tbody>
-            <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index">
+            <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index"
+                (contextmenu)="$event.preventDefault();dataContextMenu($event, j);">
                 <td *ngFor="let col of data.getData(), let i = index" (click)=selectCell(col[j])>
                     <div class="data-cell {{data.getStyleClass(i)}}" [ngClass]="{'highlight': col[j]===highlight}">
                         {{col[j]}}</div>
@@ -18,13 +19,55 @@
             </tr>
         </tbody>
     </table>
-</div>
+</div> -->
 
-<menu #ctxMenu id="ctxMenu" (mouseleave)="ctxMenu.style.display='none'" (click)="contextMenuClick($event)"
-    *ngIf="data?.getHiddenColumns() as hidden">
-    <menu title="Hide '{{ctxMenu.dataset['id']}}'" data-action="hide"> </menu>
+<as-split direction="vertical" [useTransition]="true" unit="pixel">
+    <as-split-area>
+        <div class="content">
+            <table *ngIf="data" class="fixed_headers">
+                <thead>
+                    <tr>
+                        <th *ngFor="let header of data.getHeaders()" draggable="true"
+                            (dragstart)="onDragStart($event, header)" (dragover)="$event.preventDefault()"
+                            (drop)="$event.preventDefault();drop($event);"
+                            (contextmenu)="$event.preventDefault();headerContextMenu($event, header);">
+                            <div class="header-cell" title="{{header}}">{{header}}</div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index"
+                        (contextmenu)="$event.preventDefault();dataContextMenu($event, j);">
+                        <td *ngFor="let col of data.getData(), let i = index" (click)=selectCell(col[j])>
+                            <div class="data-cell {{data.getStyleClass(i)}}"
+                                [ngClass]="{'highlight': col[j]===highlight}">
+                                {{col[j]}}</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </as-split-area>
+    <as-split-area *ngIf="viewData" [size]="viewData ? 200 : 0">
+        <div class="data" [ngStyle]="{'display': viewData ? 'block': 'none'}">
+            <div class="close-button">
+                <div class="button" (click)="closeDataView()">✖</div>
+            </div>
+            <pre>{{viewData | json}}</pre>
+        </div>
+    </as-split-area>
+</as-split>
+
+<menu #headerCtxMenu id="headerCtxMenu" (mouseleave)="headerCtxMenu.style.display='none'"
+    (click)="headerContextMenuClick($event)" *ngIf="data?.getHiddenColumns() as hidden">
+    <menu title="Hide '{{headerCtxMenu.dataset['id']}}'" data-action="hide"> </menu>
     <menu *ngIf="hidden.length>0" title="Restore...">
         <menu title="ALL" data-action="view" data-val="__all__"></menu>
         <menu *ngFor="let col of hidden" title="'{{col}}'" data-action="view" [attr.data-val]="col"></menu>
     </menu>
+</menu>
+
+<menu #dataCtxMenu id="dataCtxMenu" (mouseleave)="dataCtxMenu.style.display='none'"
+    (click)="dataContextMenuClick($event)">
+    <menu title="View..." data-action="view"> </menu>
 </menu>

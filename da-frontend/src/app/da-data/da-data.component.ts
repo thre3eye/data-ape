@@ -10,10 +10,12 @@ import { DaMongoService, TableDescription } from '../services/da-mongo.service';
 })
 export class DaDataComponent implements OnInit, AfterViewInit {
 
-  @ViewChild('ctxMenu') ctxMenu?: ElementRef;
+  @ViewChild('dataCtxMenu') dataCtxMenu?: ElementRef;
+  @ViewChild('headerCtxMenu') headerCtxMenu?: ElementRef;
 
   public data?: TableDescription;
   public highlight?: string;
+  public viewData?: any;
 
   constructor(
     private log: DaLogService,
@@ -33,26 +35,26 @@ export class DaDataComponent implements OnInit, AfterViewInit {
     this.mongoDb.swapColumns(srcKey, dstKey);
   }
 
-  public contextMenu(event_: MouseEvent, header_: string): void {
-    if (!this.data || !this.ctxMenu)
+  public headerContextMenu(event_: MouseEvent, header_: string): void {
+    if (!this.data || !this.headerCtxMenu)
       return;
-    this.log.log(`contextMenu: ${header_}`);
-    let ctxMenu = this.ctxMenu.nativeElement;
+    this.log.log(`headerContextMenu: ${header_}`);
+    let ctxMenu = this.headerCtxMenu.nativeElement;
     ctxMenu.dataset.id = header_;
     ctxMenu.style.display = "block";
     ctxMenu.style.left = (event_.pageX - 10) + "px";
     ctxMenu.style.top = (event_.pageY - 10) + "px";
   }
 
-  public contextMenuClick(event_: MouseEvent): void {
-    if (!this.data || !this.ctxMenu)
+  public headerContextMenuClick(event_: MouseEvent): void {
+    if (!this.data || !this.headerCtxMenu)
       return;
     let action = (<HTMLElement>event_.target).dataset['action'];
     switch (action) {
       case 'hide':
-        let hide = this.ctxMenu.nativeElement.dataset.id;
+        let hide = this.headerCtxMenu.nativeElement.dataset.id;
         this.mongoDb.hideColumn(hide);
-        this.log.log(`contextMenuClick: ${action}/${hide}`);
+        this.log.log(`headerContextMenuClick: ${action}/${hide}`);
         break;
       case 'view':
         let view = (<HTMLElement>event_.target).dataset['val'] ?? '';
@@ -61,11 +63,49 @@ export class DaDataComponent implements OnInit, AfterViewInit {
         } else {
           this.mongoDb.viewColumn(view);
         }
-        this.log.log(`contextMenuClick: ${action}/${view}`);
+        this.log.log(`headerContextMenuClick: ${action}/${view}`);
         break;
     }
-    this.ctxMenu.nativeElement.style.display = "none";
+    this.headerCtxMenu.nativeElement.style.display = "none";
   }
+
+  public dataContextMenu(event_: MouseEvent, idx_: number): void {
+    if (!this.data || !this.dataCtxMenu)
+      return;
+    this.log.log(`dataContextMenu: ${idx_}`);
+    let ctxMenu = this.dataCtxMenu.nativeElement;
+    ctxMenu.dataset.id = idx_;
+    ctxMenu.style.display = "block";
+    ctxMenu.style.left = (event_.pageX - 10) + "px";
+    ctxMenu.style.top = (event_.pageY - 10) + "px";
+  }
+
+  public dataContextMenuClick(event_: MouseEvent): void {
+    if (!this.data || !this.dataCtxMenu)
+      return;
+    let action = (<HTMLElement>event_.target).dataset['action'];
+    switch (action) {
+      case 'view':
+        let idx = this.dataCtxMenu.nativeElement.dataset.id;
+        let obj: { [key: string]: any } = {};
+        this.data.headers.forEach((header_, headerIdx_) => {
+          let col = this.data?.data[headerIdx_];
+          if (!col)
+            return;
+          let value = col[idx];
+          obj[header_] = value;
+        });
+        this.log.log(`dataContextMenuClick: ${action}/${idx}: ${JSON.stringify(obj)}`);
+        this.viewData = obj;
+        break;
+    }
+    this.dataCtxMenu.nativeElement.style.display = "none";
+  }
+
+  public closeDataView(): void {
+    this.viewData = null;
+  }
+
 
   public selectCell(val_: string): void {
     if (!this.data)
@@ -87,7 +127,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.log.log(`ngAfterViewInit: ${this.ctxMenu}`);
+    this.log.log(`ngAfterViewInit: ${this.headerCtxMenu}`);
   }
 
 }

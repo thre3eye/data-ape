@@ -5,8 +5,31 @@
     height: 100%;
 }
 
+#headerCtxMenu,
+#dataCtxMenu {
+    display: none;
+    z-index: 100;
+}
+
+.data {
+    display: none;
+ //   max-width: 500pt;
+    .close-button {
+        position: sticky;
+        top: 0;
+        float: right;
+        @include da-button(12pt, 6pt, rgba(0, 0, 0, 0));
+    }
+    pre {
+        display: contents;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+}
+
 .content {
     width: 100%;
+    height: 100%;
     overflow: auto;
 
     table {
@@ -18,9 +41,9 @@
         top: 0; /* REQUIRED: https://stackoverflow.com/a/43707215 */
         resize: horizontal;
         //   overflow: auto;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
         background-color: $background-color-header;
     }
 
@@ -31,16 +54,16 @@
     td,
     th {
         padding: 0pt 4pt;
-     //   clip: auto;
-     //   overflow: hidden;
-     //   text-overflow: ellipsis;
-       // overflow-wrap: break-word;
-     //  white-space: nowrap;
-     //   min-width: 70px;
-     //      width: minmax(min-content, 100pt);
-     .header-cell {
-         max-width: 70pt;
-     }
+        //   clip: auto;
+        //   overflow: hidden;
+        //   text-overflow: ellipsis;
+        // overflow-wrap: break-word;
+        //  white-space: nowrap;
+        //   min-width: 70px;
+        //      width: minmax(min-content, 100pt);
+        .header-cell {
+            max-width: 70pt;
+        }
     }
 
     tr {
