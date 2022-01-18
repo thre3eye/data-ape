@@ -15,7 +15,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
 
   public data?: TableDescription;
   public highlight?: string;
-  public viewData?: any;
+  public selection?: { table: string, idx: number, data: any };
 
   constructor(
     private log: DaLogService,
@@ -96,14 +96,14 @@ export class DaDataComponent implements OnInit, AfterViewInit {
           obj[header_] = value;
         });
         this.log.log(`dataContextMenuClick: ${action}/${idx}: ${JSON.stringify(obj)}`);
-        this.viewData = obj;
+        this.selection = { table: this.data.table, idx: idx, data: obj };
         break;
     }
     this.dataCtxMenu.nativeElement.style.display = "none";
   }
 
   public closeDataView(): void {
-    this.viewData = null;
+    this.selection = undefined;
   }
 
 
@@ -121,6 +121,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
     this.mongoDb.data.subscribe(data_ => {
       if (!data_)
         return;
+      //     this.viewIdx = undefined;
       this.data = data_;
       this.highlight = this.mongoDb.getQueryParameters(this.data.table).highlight;
     })

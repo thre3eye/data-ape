@@ -37,7 +37,8 @@
                 </thead>
                 <tbody>
                     <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index"
-                        (contextmenu)="$event.preventDefault();dataContextMenu($event, j);">
+                        (contextmenu)="$event.preventDefault();dataContextMenu($event, j);"
+                        [ngClass]="{'selected': selection && data.table === selection.table && selection.idx == j }">
                         <td *ngFor="let col of data.getData(), let i = index" (click)=selectCell(col[j])>
                             <div class="data-cell {{data.getStyleClass(i)}}"
                                 [ngClass]="{'highlight': col[j]===highlight}">
@@ -48,12 +49,12 @@
             </table>
         </div>
     </as-split-area>
-    <as-split-area *ngIf="viewData" [size]="viewData ? 200 : 0">
-        <div class="data" [ngStyle]="{'display': viewData ? 'block': 'none'}">
+    <as-split-area *ngIf="selection" [size]="200">
+        <div class="data">
             <div class="close-button">
                 <div class="button" (click)="closeDataView()">✖</div>
             </div>
-            <pre>{{viewData | json}}</pre>
+            <pre>{{selection.data | json}}</pre>
         </div>
     </as-split-area>
 </as-split>
