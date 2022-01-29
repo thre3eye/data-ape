@@ -104,9 +104,11 @@ public class MongoDriver {
         if (doc != null) {
             Configuration config = _config.config();
             String preFix = config.getString("mongo.deleted.prefix", "");
-            String postFix = config.getString("mongo.deleted.postfix", "_deleted");
-            String deleteTable = String.format("%s%s%s", preFix, table_, postFix);
-            updateDocument(database_, deleteTable, doc);
+            String postFix = config.getString("mongo.deleted.postfix", "");
+            if (!StringUtils.isBlank(String.format("%s%s", preFix, postFix).trim())) {
+                String deleteTable = String.format("%s%s%s", preFix, table_, postFix);
+                updateDocument(database_, deleteTable, doc);
+            }
             return true;
         }
         return false;
