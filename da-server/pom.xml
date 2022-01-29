@@ -146,7 +146,7 @@
 								<manifest>
 									<mainClass>com.isoplane.dataape.DataApeServer</mainClass>
 								</manifest>
-							</archive>
+							</archive> 
               <descriptorRefs>
                 <descriptorRef>jar-with-dependencies</descriptorRef>
               </descriptorRefs>

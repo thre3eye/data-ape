@@ -114,6 +114,20 @@ public class DataApeServer {
             Map<String, Object> dataMap = Collections.singletonMap("data", tableDescription);
             ctx_.json(dataMap);
         });
+        _server.put("/save/{database}/{table}", ctx_ -> {
+            String database = ctx_.pathParam("database");
+            String table = ctx_.pathParam("table");
+            String json = ctx_.body();
+            boolean result = this._mongo.update(database, table, json);
+            ctx_.json(Collections.singletonMap("result", result));
+        });
+        _server.delete("/delete/{database}/{table}/{id}", ctx_ -> {
+            String database = ctx_.pathParam("database");
+            String table = ctx_.pathParam("table");
+            String id = ctx_.pathParam("id");
+            boolean result = this._mongo.delete(database, table, id);
+            ctx_.json(Collections.singletonMap("result", result));
+        });
         _server.start(port);
     }
 

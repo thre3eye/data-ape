@@ -1,12 +1,12 @@
 package com.isoplane.dataape;
 
+import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.gt;
 import static com.mongodb.client.model.Filters.gte;
 import static com.mongodb.client.model.Filters.lt;
 import static com.mongodb.client.model.Filters.lte;
 import static com.mongodb.client.model.Filters.regex;
-import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Sorts.ascending;
 import static com.mongodb.client.model.Sorts.descending;
 import static com.mongodb.client.model.Sorts.orderBy;
@@ -30,9 +30,15 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.DeleteOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -67,6 +73,33 @@ public class MongoDriver {
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public boolean update(String database_, String table_, String json_) {
+        Document doc = StringUtils.isBlank(json_) ? null : Document.parse(json_);
+        String id = doc != null ? (String) doc.remove("_id") : null;
+        if (StringUtils.isBlank(id)) {
+            return false;
+        }
+        Bson query = Filters.eq("_id", id);
+        ReplaceOptions options = new ReplaceOptions().upsert(true);
+        MongoDatabase db = this._mongo.getDatabase(database_);
+        MongoCollection<Document> collection = db.getCollection(table_);
+        UpdateResult update = collection.replaceOne(query, doc, options);
+        boolean result = update.getMatchedCount() == 1;
+        return result;
+    }
+
+    public boolean delete(String database_, String table_, String id_) {
+        if (StringUtils.isBlank(id_)) {
+            return false;
+        }
+        Bson query = Filters.eq("_id", id_);
+        MongoDatabase db = this._mongo.getDatabase(database_);
+        MongoCollection<Document> collection = db.getCollection(table_);
+        DeleteResult delete = collection.deleteOne(query);
+        boolean result = delete.getDeletedCount() == 1;
+        return result;
     }
 
     public String getDatabase() {

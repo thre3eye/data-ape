@@ -52,9 +52,11 @@
     <as-split-area *ngIf="selection" [size]="200">
         <div class="data">
             <div class="close-button">
+                <div class="button" (click)="saveDataView()">✔</div>
                 <div class="button" (click)="closeDataView()">✖</div>
             </div>
-            <pre>{{selection.data | json}}</pre>
+            <!-- <pre>{{selection.data | json}}</pre> -->
+            <textarea [(ngModel)]="selectionText"></textarea>
         </div>
     </as-split-area>
 </as-split>
@@ -71,4 +73,5 @@
 <menu #dataCtxMenu id="dataCtxMenu" (mouseleave)="dataCtxMenu.style.display='none'"
     (click)="dataContextMenuClick($event)">
     <menu title="View..." data-action="view"> </menu>
+    <menu title="Delete..." data-action="delete"> </menu>
 </menu>

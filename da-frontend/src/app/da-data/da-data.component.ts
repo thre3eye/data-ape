@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { environment } from 'src/environments/environment';
 import { DaLogService } from '../services/da-log.service';
-import { DaMongoService, TableDescription } from '../services/da-mongo.service';
+import { DaMongoService, QueryParameters, TableDescription } from '../services/da-mongo.service';
 
 @Component({
   selector: 'app-da-data',
@@ -16,6 +16,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
   public data?: TableDescription;
   public highlight?: string;
   public selection?: { table: string, idx: number, data: any };
+  public selectionText?: string;
 
   constructor(
     private log: DaLogService,
@@ -84,22 +85,61 @@ export class DaDataComponent implements OnInit, AfterViewInit {
     if (!this.data || !this.dataCtxMenu)
       return;
     let action = (<HTMLElement>event_.target).dataset['action'];
+    let idx = this.dataCtxMenu.nativeElement.dataset.id;
+    let obj: { [key: string]: any } = {};
+    this.data.headers.forEach((header_, headerIdx_) => {
+      let col = this.data?.data[headerIdx_];
+      if (!col)
+        return;
+      let value = col[idx];
+      obj[header_] = value;
+    });
+    this.log.log(`dataContextMenuClick: ${action}/${idx}: ${JSON.stringify(obj)}`);
     switch (action) {
+      case 'delete':
+        let id = obj['_id'];
+        this.deleteRecord(id);
+        break;
       case 'view':
-        let idx = this.dataCtxMenu.nativeElement.dataset.id;
-        let obj: { [key: string]: any } = {};
-        this.data.headers.forEach((header_, headerIdx_) => {
-          let col = this.data?.data[headerIdx_];
-          if (!col)
-            return;
-          let value = col[idx];
-          obj[header_] = value;
-        });
-        this.log.log(`dataContextMenuClick: ${action}/${idx}: ${JSON.stringify(obj)}`);
         this.selection = { table: this.data.table, idx: idx, data: obj };
+        this.selectionText = JSON.stringify(obj, null, 2);
         break;
     }
     this.dataCtxMenu.nativeElement.style.display = "none";
+  }
+
+  public deleteRecord(id_: string): void {
+    if (!id_ || !this.data)
+      return;
+    this.log.log(`deleteRecord: ${id_}`);
+    if (confirm(`Delete database record '${id_}'?`)) {
+      this.mongoDb.deleteRecord(this.data.db, this.data.table, id_).subscribe(result_ => {
+        if (result_ && this.data) {
+          let params: QueryParameters = this.mongoDb.getQueryParameters(this.data.table);
+          this.mongoDb.getTableData(this.data?.db, this.data?.table, params);
+        }
+      });
+    }
+  }
+
+  public saveDataView(): void {
+    if (!this.selectionText || !this.data)
+      return;
+    this.log.log(`data: ${this.selectionText}`);
+    if (confirm(`Overwrite database record?`)) {
+      try {
+        let obj = JSON.parse(this.selectionText);
+        this.log.log(`Saving: ${obj}`);
+        this.mongoDb.saveRecord(this.data.db, this.data?.table, obj).subscribe(result_ => {
+          if (result_ && this.data) {
+            let params: QueryParameters = this.mongoDb.getQueryParameters(this.data.table);
+            this.mongoDb.getTableData(this.data?.db, this.data?.table, params);
+          }
+        });
+      } catch (ex) {
+        alert(`Invalid JSON`);
+      }
+    }
   }
 
   public closeDataView(): void {

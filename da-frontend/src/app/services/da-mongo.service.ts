@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, Subject, take } from 'rxjs';
+import { map, Observable, Subject, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ConfigData, DaConfigService } from './da-config.service';
 import { DaLogService } from './da-log.service';
@@ -185,6 +185,18 @@ export class DaMongoService {
       this._data = data;
       this.data.next(this._data);
     });
+  }
+
+  public saveRecord(db_: string, table_: string, data_: any): Observable<boolean> {
+    let url = `${environment.server}save/${db_}/${table_}`;
+    let response = this.http.put<{ 'result': boolean }>(url, data_);
+    return response.pipe(map((data) => data['result']));
+  }
+
+  public deleteRecord(db_: string, table_: string, id_: string): Observable<boolean> {
+    let url = `${environment.server}delete/${db_}/${table_}/${id_}`;
+    let response = this.http.delete<any>(url);
+    return response.pipe(map((data) => data['result']));
   }
 
   public swapColumns(srcKey_: string, dstKey_: string): void {
