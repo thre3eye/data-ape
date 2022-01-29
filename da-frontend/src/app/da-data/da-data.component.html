@@ -52,8 +52,8 @@
     <as-split-area *ngIf="selection" [size]="200">
         <div class="data">
             <div class="close-button">
-                <div class="button" (click)="saveDataView()">✔</div>
-                <div class="button" (click)="closeDataView()">✖</div>
+                <div class="button" title="Save..." (click)="saveDataView()">✔</div>
+                <div class="button" title="Close" (click)="closeDataView()">✖</div>
             </div>
             <!-- <pre>{{selection.data | json}}</pre> -->
             <textarea [(ngModel)]="selectionText"></textarea>

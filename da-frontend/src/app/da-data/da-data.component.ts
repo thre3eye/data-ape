@@ -114,7 +114,9 @@ export class DaDataComponent implements OnInit, AfterViewInit {
     this.log.log(`deleteRecord: ${id_}`);
     if (confirm(`Delete database record '${id_}'?`)) {
       this.mongoDb.deleteRecord(this.data.db, this.data.table, id_).subscribe(result_ => {
-        if (result_ && this.data) {
+        if (!result_) {
+          alert(`Failed to delete record '${id_}'?`);
+        } else if (this.data) {
           let params: QueryParameters = this.mongoDb.getQueryParameters(this.data.table);
           this.mongoDb.getTableData(this.data?.db, this.data?.table, params);
         }

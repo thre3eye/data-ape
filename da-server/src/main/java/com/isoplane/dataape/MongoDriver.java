@@ -30,10 +30,8 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.DeleteOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
-import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 
 import org.apache.commons.collections.MapUtils;
@@ -48,7 +46,6 @@ public class MongoDriver {
 
     private ConfigUtil _config;
     private MongoClient _mongo;
-    //  private Gson _gson;
 
     public MongoDriver(ConfigUtil config_) {
         this._config = config_;
@@ -77,7 +74,12 @@ public class MongoDriver {
 
     public boolean update(String database_, String table_, String json_) {
         Document doc = StringUtils.isBlank(json_) ? null : Document.parse(json_);
-        String id = doc != null ? (String) doc.remove("_id") : null;
+        boolean result = updateDocument(database_, table_, doc);
+        return result;
+    }
+
+    private boolean updateDocument(String database_, String table_, Document doc_) {
+        String id = doc_ != null ? (String) doc_.remove("_id") : null;
         if (StringUtils.isBlank(id)) {
             return false;
         }
@@ -85,7 +87,7 @@ public class MongoDriver {
         ReplaceOptions options = new ReplaceOptions().upsert(true);
         MongoDatabase db = this._mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
-        UpdateResult update = collection.replaceOne(query, doc, options);
+        UpdateResult update = collection.replaceOne(query, doc_, options);
         boolean result = update.getMatchedCount() == 1;
         return result;
     }
@@ -97,9 +99,20 @@ public class MongoDriver {
         Bson query = Filters.eq("_id", id_);
         MongoDatabase db = this._mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
-        DeleteResult delete = collection.deleteOne(query);
-        boolean result = delete.getDeletedCount() == 1;
-        return result;
+
+        Document doc = collection.findOneAndDelete(query);
+        if (doc != null) {
+            Configuration config = _config.config();
+            String preFix = config.getString("mongo.deleted.prefix", "");
+            String postFix = config.getString("mongo.deleted.postfix", "_deleted");
+            String deleteTable = String.format("%s%s%s", preFix, table_, postFix);
+            updateDocument(database_, deleteTable, doc);
+            return true;
+        }
+        return false;
+        //   DeleteResult delete = collection.deleteOne(query);
+        //   boolean result = delete.getDeletedCount() == 1;
+        //  return result;
     }
 
     public String getDatabase() {
