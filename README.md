@@ -50,6 +50,7 @@ Missing features can be added if there is interest and related submissions are w
 ### Features:
    - Select, view and page through tabular data (database table, etc)
    - Query data with filters in GUI
+   - Light-weight JSON based record editing; Record deletion
    - Query through URL. Example:  
      http://&lt;host&gt;:&lt;port&gt;/?db=my_db&table=my_table&page=2&pageSize=40&sort=[{"key":"name","dir":"-1"}]&select=[{"key":"name","op":"stw","val":"A"}]&highlight=London
    - Sort data in GUI. Optionally define default sort per db/table in config file
@@ -64,7 +65,6 @@ Missing features can be added if there is interest and related submissions are w
    - Check feasibility of conversion functions for table columns (example: eopch timestamp -> readable date)
    - Deal with non-primitive and nested data columns
    - Create dockerfile for build
-   - Light-weight JSON based record editing
    - Persist and GUI-edit configuration
    - Add secrurity/login (not required for now and may add complexity to deployment, maintenance and usage)
 
