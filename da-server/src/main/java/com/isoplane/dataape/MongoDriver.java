@@ -172,7 +172,7 @@ public class MongoDriver {
                 };
                 selects.add(q);
             }
-            query = and(selects);
+            query = selects.size() == 1 ? selects.get(0) : and(selects);
         }
         long queryCount = isCount ? collection.countDocuments(query) : -1;
         FindIterable<Document> documents;

@@ -10,6 +10,11 @@
         <ng-container *daVar="selectNull.key as nullSelect">
             <ng-container *ngFor="let find of select, let i = index">
                 <div class="find-key" [ngStyle]="{'grid-row': i+1}">
+                    <!-- <input type="text" list="columns" [(ngModel)]="select[i].key" value="select[i].val">
+                    <datalist id="columns">
+                        <option value="{{nullSelect}}">--All--</option>
+                        <option *ngFor="let header of headers" [value]="header">{{header}}</option>
+                    </datalist> -->
                     <select [(ngModel)]="select[i].key" title="{{select[i].key}}">
                         <option value="{{nullSelect}}">--All--</option>
                         <option *ngFor="let header of headers" value={{header}}>

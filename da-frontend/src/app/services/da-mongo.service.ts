@@ -151,10 +151,10 @@ export class DaMongoService {
         // NOTE: Prepare for multi select but not in use yet (20211223)
         let selectArray: { key: string, op: string, val?: string | number }[] = [];
         queryParams_.select.forEach(select_ => {
-          selectArray.push(select_.val ? { key: select_.key, op: select_.op, val: select_.val } : { key: select_.key, op: select_.op });
+          selectArray.push(select_.val != null ? { key: select_.key, op: select_.op, val: select_.val } : { key: select_.key, op: select_.op });
           httpParams = httpParams.set('select_key', select_.key);
           httpParams = httpParams.set('select_op', select_.op);
-          if (select_.val) {
+          if (select_.val != null) {
             httpParams = httpParams.set('select_val', select_.val);
           }
         });
