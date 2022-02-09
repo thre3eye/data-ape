@@ -15,7 +15,8 @@
                         <option value="{{nullSelect}}">--All--</option>
                         <option *ngFor="let header of headers" [value]="header">{{header}}</option>
                     </datalist> -->
-                    <select [(ngModel)]="select[i].key" title="{{select[i].key}}">
+                    <select #findKeySelect [(ngModel)]="select[i].key" title="{{select[i].key}}"
+                        (change)='onChangeSelect(i, findKeySelect.value)'>
                         <option value="{{nullSelect}}">--All--</option>
                         <option *ngFor="let header of headers" value={{header}}>
                             {{header}}
@@ -23,15 +24,17 @@
                     </select>
                 </div>
                 <div class="find-op" [ngStyle]="{'grid-row': i+1}">
-                    <select *ngIf="select[i].key !== nullSelect" [(ngModel)]="select[i].op">
+                    <select #findOpSelect *ngIf="select[i].key !== nullSelect" [(ngModel)]="select[i].op"
+                        (change)='onChangeSelect(i, findOpSelect.value)'>
                         <option *ngFor="let op of findOperators" value={{op[1]}}>
                             {{op[0]}}
                         </option>
                     </select>
                 </div>
                 <div class="find-val" [ngStyle]="{'grid-row': i+1}">
-                    <input *ngIf="select[i].key !== nullSelect" class="find-inp" type="text" [(ngModel)]="select[i].val"
-                        (keyup.enter)="submit()">
+                    <input #findValInput *ngIf="(select[i].key !== nullSelect) && !selectNoVal.includes(select[i].op)"
+                        class="find-inp" type="text" [(ngModel)]="select[i].val"
+                        (keyup)='onChangeSelect(i, findValInput.value, $event)' (keyup.enter)="submit()">
                 </div>
                 <div class="select-button" *ngIf="nullSelect !== select[0].key" [ngStyle]="{'grid-row': i+1}"
                     title="{{i==0 ? 'Add' : 'Remove'}} select...">
@@ -46,7 +49,8 @@
         <ng-container *daVar="sortNull.key as nullSort">
             <ng-container *ngFor="let srt of sort, let i = index">
                 <div class="sort-key" [ngStyle]="{'grid-row': i+1}">
-                    <select [(ngModel)]="sort[i].key" title="{{sort[i].key}}">
+                    <select #sortKeySelect [(ngModel)]="sort[i].key" title="{{sort[i].key}}"
+                        (change)='onChangeSort(i, sortKeySelect.value)'>
                         <option value="{{nullSort}}">--None--</option>
                         <option *ngFor="let header of headers" value={{header}}>
                             {{header}}
@@ -54,7 +58,8 @@
                     </select>
                 </div>
                 <div class="sort-op" [ngStyle]="{'grid-row': i+1}">
-                    <select *ngIf="sort[i].key !== nullSort" [(ngModel)]="sort[i].dir">
+                    <select #sortOpSelect *ngIf="sort[i].key !== nullSort" [(ngModel)]="sort[i].dir"
+                        (change)='onChangeSort(i, sortOpSelect.value)'>
                         <option *ngFor="let op of sortOperators" value={{op[1]}}>
                             {{op[0]}}
                         </option>
@@ -69,13 +74,27 @@
 
         <div class="filler filler-3">&#65372;</div>
 
+        <div *ngIf="data" class="copy-button">
+            <div class="button" (click)="copyQuery()" title="Copy MQL">📋</div>
+        </div>
         <div class="submit-button">
             <div class="button" (click)="submit()" title="Execute query...">⇒</div>
         </div>
 
-        <div class="panel-button" *ngIf="select.length > 1 || sort.length > 1">
+        <div class="panel-button" *ngIf="select.length > 1 || sort.length > 1 || queryStr">
             <div class="button" (click)="isSlim = !isSlim" title="{{isSlim ? 'Expand' : 'Collapse'}} panel...">{{isSlim
                 ? '&#9660;':'&#9650;'}}</div>
+        </div>
+
+        <div *ngIf="queryStr || sortStr" class="query" (click)="copyQuery()">
+            <ng-container *ngIf="queryStr">
+                <div class="queryStr-lbl">query:</div>
+                <div class="queryStr-val">{{queryStr}}</div>
+            </ng-container>
+            <ng-container *ngIf="sortStr">
+                <div class="sortStr-lbl">sort:</div>
+                <div class="sortStr-val">{{sortStr}}</div>
+            </ng-container>
         </div>
 
     </div>

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { DaLogService } from '../services/da-log.service';
-import { DaMongoService } from '../services/da-mongo.service';
+import { DaMongoService, Table } from '../services/da-mongo.service';
 
 @Component({
   selector: 'app-da-sidebar',
@@ -10,7 +10,8 @@ import { DaMongoService } from '../services/da-mongo.service';
 export class DaSidebarComponent implements OnInit {
 
   public db?: string;
-  public tables: string[] = [];
+  public tables: Table[] = [];
+  public isLoading = true;
 
   public selectedTable?: string;
 
@@ -25,23 +26,30 @@ export class DaSidebarComponent implements OnInit {
     });
   }
 
-  public select(table_: string): void {
+  public select(table_: Table): void {
     if (!this.db)
       return;
     this.log.log(`Table: ${table_}`);
-    let params = this.mongoDb.getQueryParameters(table_);
-    this.mongoDb.getTableData(this.db, table_, params);
+    let params = this.mongoDb.getQueryParameters(table_.name);
+    this.mongoDb.getTableData(this.db, table_.name, params);
+  }
+
+  public refresh(): void {
+    if (!this.db)
+      return;
+    this.mongoDb.getTables(this.db).subscribe(tables_ => {
+      if (!tables_)
+        return;
+      this.tables = tables_;
+    });
   }
 
   ngOnInit(): void {
     this.mongoDb.getDatabase().subscribe(db_ => {
       this.db = db_.dbName;
-      this.mongoDb.getTables(this.db).subscribe(data_ => {
-        if (!data_ || !data_.tables)
-          return;
-        this.tables = data_.tables;
-      });
+      this.refresh();
     });
+    this.mongoDb.isLoading.subscribe(val_ => this.isLoading = val_);
   }
 
 }

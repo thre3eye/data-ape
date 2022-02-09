@@ -6,23 +6,34 @@
     width: 100%;
 }
 
+.slim {
+    height: $footer-height;
+}
+
+.tall {
+    height: auto;
+}
+
 .content {
     $pagination-width: 500pt;
     width: 100%;
     overflow: auto;
     display: grid;
-    grid-template-columns: 1fr $pagination-width 1fr;
+    grid-template-columns: 1fr $pagination-width 1fr 40pt;
+    grid-template-rows: $footer-height auto;
     justify-content: center;
     align-items: center;
     overflow: hidden;
 
     .pagination {
         grid-column: 2;
+        grid-row: 1;
         $filler-width: 3pt;
         width: $pagination-width;
         display: grid;
         grid-template-columns: 30pt 30pt 30pt auto 60pt 60pt $filler-width 1fr;
         column-gap: 10pt;
+        row-gap: 3pt;
 
         .filler {
             text-align: center;
@@ -47,13 +58,17 @@
             width: 40pt;
             text-align: center;
         }
+        .export-button {
+            @include da-button(16pt);
+        }
     }
     .messages {
         grid-column: 3;
+        grid-row: 1;
         padding-right: 10pt;
         text-align: right;
 
-        &.default{
+        &.default {
             color: green;
         }
         &.error {
@@ -63,7 +78,30 @@
             color: orange;
         }
     }
-    .export-button {
-        @include da-button(16pt);
+    .panel-button {
+        grid-row: 1;
+        grid-column: 4;
+        @include da-button(14pt);
+    }
+
+    .decimals {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        display: grid;
+        grid-template-columns: 100pt 60pt 30pt auto;
+        border-top: 1px solid $grid-color;
+        background-color: $background-color-odd;
+        .settings-lbl {
+            padding-left: 10pt;
+            font-weight: bold;
+        }
+        .decimals-lbl {
+        }
+        .decimals-val {
+        }
+        .decimals-inp {
+            width: 30pt;
+            text-align: center;
+        }
     }
 }

@@ -2,7 +2,9 @@ package com.isoplane.dataape;
 
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
@@ -13,7 +15,7 @@ public class JsonHelper {
 
     static final Logger log = LoggerFactory.getLogger(DataApeServer.class);
 
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static ObjectMapper mapper = new ObjectMapper().configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     private static TypeFactory tFactory = mapper.getTypeFactory();
     private static CollectionType selectListType = tFactory.constructCollectionType(List.class, SelectParam.class);
     private static CollectionType sortListType = tFactory.constructCollectionType(List.class, SortParam.class);
@@ -39,6 +41,17 @@ public class JsonHelper {
         } catch (Exception ex) {
             log.error(String.format("toSelectParam: %s", json_), ex);
             return null;
+        }
+    }
+
+    static public String serialize(Object obj_) {
+        if (obj_ == null)
+            return null;
+        try {
+            String str = mapper.writeValueAsString(obj_);
+            return str;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
     }
 

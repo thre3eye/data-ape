@@ -1,9 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map, Observable, Subject, take } from 'rxjs';
+import { BehaviorSubject, catchError, finalize, map, Observable, of, Subject, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ConfigData, DaConfigService } from './da-config.service';
 import { DaLogService } from './da-log.service';
+import { DaMsgService, MessageLevel } from './da-msg.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,13 +13,16 @@ export class DaMongoService {
 
   private _data?: TableDescription;
   public data = new Subject<TableDescription>();
+  public isLoading = new BehaviorSubject<boolean>(true);
 
   private displayMap: Map<string, string[]> = new Map();
   private queryMap: Map<string, QueryParameters> = new Map();
+  private decimalDigits = 3;
 
   constructor(
     private http: HttpClient,
     private log: DaLogService,
+    private msg: DaMsgService,
     private config: DaConfigService) {
   }
 
@@ -77,7 +81,6 @@ export class DaMongoService {
     if (query_) {
       let table = query_['table'];
       if (table) {
-        //     let db = query_['db'];
         this.log.log(`web query table: ${table}`);
         this.getDatabase().pipe(take(1)).subscribe(db_ => {
           let params = this.getQueryParameters(table);
@@ -120,10 +123,29 @@ export class DaMongoService {
     return response;
   }
 
-  public getTables(db_: string): Observable<Tables> {
+  public getTables(db_: string): Observable<Table[]> {
+    this.isLoading.next(true);
     let url = `${environment.server}tables/${db_}`;
-    let response = this.http.get<Tables>(url);
+    let response = this.http.get<{ 'tables': Table[], 'decimaldigits': number }>(url).pipe(
+      map(resp_ => {
+        return resp_.tables;
+      }),
+      catchError(err_ => {
+        this.log.log(err_);
+        this.msg.publish({ level: MessageLevel.Error, text: 'Error getting Tables' });
+        return of([]);
+      }),
+      finalize(() => this.isLoading.next(false))
+    );
     return response;
+  }
+
+  public getDecimalDigits(): number {
+    return this.decimalDigits;
+  }
+
+  public setDecimalDigits(val_: number): void {
+    this.decimalDigits = val_;
   }
 
   public getQueryParameters(table_: string): QueryParameters {
@@ -136,6 +158,7 @@ export class DaMongoService {
   }
 
   public getTableData(db_: string, table_: string, queryParams_?: QueryParameters): void {
+    this.isLoading.next(true);
     let httpParams = new HttpParams();
     if (queryParams_) {
       httpParams = httpParams.set('page', queryParams_.page + "");
@@ -166,25 +189,29 @@ export class DaMongoService {
 
     let url = `${environment.server}data/${db_}/${table_}`;
     let response = this.http.get<TableDescriptionWrapper>(url, { params: httpParams });
+    response.pipe(
+      map(data_ => {
+        let data = Object.assign(new TableDescriptionImpl(), data_.data, { headers: Object.getOwnPropertyNames(data_.data.fieldMap) });
+        let cols = this.displayMap.get(data.table);
+        if (cols && cols.length > 0) {
+          data.setActiveColumns(cols);
+        }
+        let params = new QueryParameters(data);
+        if (queryParams_) {
+          params.highlight = queryParams_.highlight;
+        }
+        this.queryMap.set(table_, params);
 
-    response.subscribe(data_ => {
-      let data = Object.assign(new TableDescriptionImpl(), data_.data);
-
-      let cols = this.displayMap.get(data.table);
-      if (cols && cols.length > 0) {
-        data.setActiveColumns(cols);
-      }
-
-      let params = new QueryParameters(data);
-      if (queryParams_) {
-        //      params.select = queryParams_.select;
-        params.highlight = queryParams_.highlight;
-      }
-      this.queryMap.set(table_, params);
-
-      this._data = data;
-      this.data.next(this._data);
-    });
+        this._data = data;
+        this.data.next(this._data);
+      }),
+      catchError(err_ => {
+        this.log.log(err_);
+        this.msg.publish({ level: MessageLevel.Error, text: 'Error getting Data' });
+        return of([]);
+      }),
+      finalize(() => this.isLoading.next(false))
+    ).subscribe();
   }
 
   public saveRecord(db_: string, table_: string, data_: any): Observable<boolean> {
@@ -216,7 +243,6 @@ export class DaMongoService {
     }
     this._data.setActiveColumns(cols);
     this.displayMap.set(this._data.table, cols);
-    //  this.data.next(this._data);
   }
 
   public hideColumn(col_: string): void {
@@ -226,7 +252,6 @@ export class DaMongoService {
     cols = cols.filter(c_ => col_ !== c_);
     this._data.setActiveColumns(cols);
     this.displayMap.set(this._data.table, cols);
-    //  this.data.next(this._data);
   }
 
   public viewColumn(col_?: string): void {
@@ -246,7 +271,6 @@ export class DaMongoService {
       if (idx < 0)
         return;
       cols = [col_, ...cols];
-      //  this.data.next(this._data);
     }
     this._data.setActiveColumns(cols);
     this.displayMap.set(this._data.table, cols);
@@ -280,6 +304,13 @@ export interface DatabaseDescription {
   dbName: string;
 }
 
+export interface Table {
+  name: string;
+  fields: string[];
+  types: string[];
+  fieldMap: {};
+}
+
 export interface Tables {
   tables: string[];
 }
@@ -291,8 +322,8 @@ export interface TableData {
 export interface TableDescription {
   db: string;
   table: string;
+  fieldMap: { [key: string]: string };
   headers: string[];
-  types: string[];
   data: any[][];
   dataSize: number;
   querySize: number;
@@ -306,7 +337,7 @@ export interface TableDescription {
   setActiveColumns(cols_: string[]): void;
   getHeaders(): string[];
   getData(): any[][];
-  getStyleClass(i_: number): string;
+  getStyleClass(i_: number): string | undefined;
   getType(header_: string): string | undefined;
 
 }
@@ -314,8 +345,8 @@ export interface TableDescription {
 export class TableDescriptionImpl implements TableDescription {
   public db!: string;
   public table!: string;
+  public fieldMap!: { [key: string]: string };
   public headers!: string[];
-  public types!: string[];
   public data!: any[][];
   public dataSize!: number;
   public querySize!: number;
@@ -324,7 +355,6 @@ export class TableDescriptionImpl implements TableDescription {
   public select?: { key: string, op: string, val?: string | number }[];
   public sort?: { key: string, dir: string }[];
   private _activeColumns?: string[];
-  private _activeStyles?: string[]; // Note: Pre-selected to speed up table
 
   public getHiddenColumns(): string[] {
     const active = this._activeColumns;
@@ -338,16 +368,15 @@ export class TableDescriptionImpl implements TableDescription {
   }
 
   public getType(header_: string): string | undefined {
-    if (!header_ || !this.headers)
+    if (header_ == null || this.fieldMap == null)
       return undefined;
-    let idx = this.headers.indexOf(header_);
-    let type = idx >= 0 ? this.types[idx] : undefined;
+    let type = this.fieldMap[header_];
     return type;
   }
 
-  public getStyleClass(i_: number): string {
-    let styles = this._activeStyles && this._activeStyles.length > 0 ? this._activeStyles : this.types;
-    let style = styles[i_];
+  public getStyleClass(i_: number): string | undefined {
+    let field = this._activeColumns && this._activeColumns.length > 0 ? this._activeColumns[i_] : this.headers[i_];
+    let style = this.getType(field);
     return style;
   }
 
@@ -360,14 +389,6 @@ export class TableDescriptionImpl implements TableDescription {
   }
   public setActiveColumns(cols_: string[]): void {
     this._activeColumns = cols_;
-    let styles: string[] = [];
-    this._activeColumns.forEach(c_ => {
-      let idx = this.headers.indexOf(c_);
-      if (idx >= 0) {
-        styles.push(this.types[idx]);
-      }
-    });
-    this._activeStyles = styles;
   }
 
   public getHeaders(): string[] {

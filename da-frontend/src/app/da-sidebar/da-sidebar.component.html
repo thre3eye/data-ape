@@ -1,9 +1,16 @@
 <div class="content">
-    <div class="header"><div>DB: </div><div class="db">{{db}}</div></div>
+    <div class="header">
+        <div>DB: </div>
+        <div class="db">{{db}}</div>
+        <div class="refresh" title="Refresh" (click)="refresh()">↻</div>
+    </div>
     <div class="tables">
+        <div *ngIf="isLoading" class="loader-wrapper">
+            <div class="loader"></div>
+        </div>
         <div class="table" *ngFor="let table of tables" (click)="select(table)"
-            [ngClass]="{'selected': table===selectedTable}">
-            {{table}}
+            [ngClass]="{'selected': table.name===selectedTable}">
+            {{table.name}}
         </div>
     </div>
 </div>

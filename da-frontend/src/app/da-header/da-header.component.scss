@@ -34,7 +34,7 @@
         width: 100%;
         display: grid;
         //     grid-template-columns: auto auto $filler-width auto $find-key-width auto auto $filler-width auto $sort-key-width auto $filler-width 20pt 1fr 40pt;
-        grid-template-columns: auto auto auto auto auto auto auto auto auto auto auto auto auto auto 20pt 1fr 40pt;
+        grid-template-columns: auto auto auto auto auto auto auto auto auto auto auto auto auto auto 20pt 20pt 1fr 40pt;
         column-gap: 5pt;
         row-gap: 3pt;
 
@@ -120,15 +120,20 @@
             grid-column: 13;
             @include da-button(12pt, 6pt, rgba(0, 0, 0, 0));
         }
-        .submit-button {
+        .copy-button {
             grid-column: 15;
             grid-row: 1;
             @include da-button(14pt);
         }
-        .submit {
-            grid-column: 15;
+        .submit-button {
+            grid-column: 16;
             grid-row: 1;
+            @include da-button(14pt);
         }
+        // .submit {
+        //     grid-column: 15;
+        //     grid-row: 1;
+        // }
 
         @mixin test {
             height: $htest;
@@ -138,6 +143,26 @@
             grid-row: 1;
             grid-column: -1;
             @include da-button(14pt);
+        }
+
+        .query {
+            grid-column: 1 / -1;
+            //    grid-row: -1;
+            //   height: $header-height;
+            display: grid;
+            grid-template-columns: 40pt auto 40pt auto 1fr;
+            column-gap: 10pt;
+            border-top: 1px solid $grid-color;
+            &:active {
+                :not(.queryStr-lbl,.sortStr-lbl) {
+                    color: red;
+                }
+            }
+
+            .query-lbl {
+            }
+            .query-val {
+            }
         }
     }
 }

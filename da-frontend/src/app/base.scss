@@ -1,6 +1,7 @@
-
 $header-height: 26pt;
+$footer-height: 28pt;
 
+$grid-color: rgb(180, 180, 180);
 $background-color-header: rgb(157, 187, 214);
 
 $background-color-even: rgb(242, 242, 242);
@@ -22,7 +23,7 @@ $background-color-hover: rgb(255, 227, 137);
         border-radius: $border-radius;
         text-align: center;
         line-height: $button-size;
-        font-size: calc($button-size * 0.75);// 2 / 3);
+        font-size: calc($button-size * 0.75); // 2 / 3);
         cursor: pointer;
 
         &:hover {
@@ -64,14 +65,14 @@ menu {
         position: relative;
         top: -20px;
         left: 100%;
-       // width: 55px;
-       min-width: min-content;
-       padding: 0 5pt;
+        // width: 55px;
+        min-width: min-content;
+        padding: 0 5pt;
     }
-    &[title]:before{
-        content:attr(title);
+    &[title]:before {
+        content: attr(title);
     }
-    &:not([title]):before{
-        content:"\2630";
+    &:not([title]):before {
+        content: "\2630";
     }
 }

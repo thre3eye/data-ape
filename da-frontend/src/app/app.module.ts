@@ -13,6 +13,7 @@ import { DaDataPipe } from './services/da-data.pipe';
 import { DaFooterComponent } from './da-footer/da-footer.component';
 import { FormsModule } from '@angular/forms';
 import { DaVarDirective } from './services/da-var.directive';
+import { DaFormatPipe } from './services/da-format.pipe';
 
 
 @NgModule({
@@ -23,7 +24,8 @@ import { DaVarDirective } from './services/da-var.directive';
     DaDataComponent,
     DaDataPipe,
     DaFooterComponent,
-    DaVarDirective
+    DaVarDirective,
+    DaFormatPipe
   ],
   imports: [
     BrowserModule,

@@ -15,6 +15,8 @@ export class DaFooterComponent implements OnInit {
   public page: number = -1;
   public pageCount: number = -1;
   public pageSize: number = 50;
+  public decimals: number = 3;
+  public isSlim: boolean = true;
 
   public message: MessageData = { text: '', level: MessageLevel.Default };
 
@@ -31,6 +33,7 @@ export class DaFooterComponent implements OnInit {
       this.page = data_.page;
       this.pageCount = Math.round(data_.querySize / data_.pageSize);
       this.pageSize = data_.pageSize;
+      this.decimals = this.mongoDb.getDecimalDigits();
     });
   }
 
@@ -49,6 +52,10 @@ export class DaFooterComponent implements OnInit {
     params.page = this.page;
     params.pageSize = this.pageSize;
     this.mongoDb.getTableData(this.data.db, this.data.table, params);
+  }
+
+  public setDecimals(): void {
+    this.mongoDb.setDecimalDigits(this.decimals);
   }
 
   public export(): void {

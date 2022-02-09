@@ -22,7 +22,7 @@
 .main-area {
     overflow: hidden;
     display: grid;
-    grid-template-rows: auto 1fr 28pt;
+    grid-template-rows: auto 1fr auto;
 
     .header-content {
         grid-row: 1;

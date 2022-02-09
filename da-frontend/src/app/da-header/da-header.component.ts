@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { environment } from 'src/environments/environment';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, QueryParameters, TableDescription } from '../services/da-mongo.service';
+import { DaMsgService, MessageLevel } from '../services/da-msg.service';
 
 @Component({
   selector: 'app-da-header',
@@ -13,22 +14,30 @@ export class DaHeaderComponent implements OnInit {
   public readonly sortNull = { key: '__none__', dir: '1' };
   public readonly selectNull = { key: '__all__', op: 'eq' };
 
+  public readonly selectNoVal = ['exst', 'nxst'];
+
   public data?: TableDescription;
   public headers: string[] = [];
   public select: { key: string, op: string, val?: string | number }[] = this.resetSelect();
   public sort: { key: string, dir: string }[] = this.resetSort();
-
   public isSlim: boolean = true;
+
+  public queryStr: string | undefined;
+  public sortStr: string | undefined;
 
   public findOperators: string[][] = [
     ['>', 'gt'],
     ['>=', 'gte'],
     ['=', 'eq'],
+    ['!=', 'ne'],
     ['<=', 'lte'],
     ['<', 'lt'],
     ['starts', 'stw'],
     ['contains', 'ctn'],
-    ['ends', 'edw']
+    ['excludes', 'excl'],
+    ['ends', 'endw'],
+    ['exists', 'exst'],
+    ['! exists', 'nxst'],
   ];
 
   public sortOperators: string[][] = [
@@ -38,6 +47,7 @@ export class DaHeaderComponent implements OnInit {
 
   constructor(
     private log: DaLogService,
+    private msg: DaMsgService,
     private mongoDb: DaMongoService
   ) {
     this.mongoDb.data.subscribe(data_ => {
@@ -54,12 +64,79 @@ export class DaHeaderComponent implements OnInit {
     });
   }
 
+  public onChangeSelect(idx_: number, val_: any, evt_?: KeyboardEvent): void {
+    if (evt_ != null && evt_.key === 'Enter')
+      return;
+    this.log.log(`change: ${val_} - ${JSON.stringify(this.select[idx_])}`);
+    this.generateQuery();
+  }
+
+  public onChangeSort(idx_: number, val_: any): void {
+    this.log.log(`sort: ${val_} - ${JSON.stringify(this.sort[idx_])}`);
+    this.generateQuery();
+  }
+
+  private generateQuery(): void {
+    let selectData: string[] = [];
+    for (let i = 0; i < this.select.length; i++) {
+      let select = this.select[i];
+      switch (select.op) {
+        case 'eq':
+        case 'gt':
+        case 'gte':
+        case 'lt':
+        case 'lte':
+        case 'ne':
+          if (select.val != null) {
+            let type = this.data?.getType(select.key);
+            let val = 'string' === type ? `'${select.val}'` : select.val;
+            selectData.push(`{${select.key}: {$${select.op}: ${val}}}`);
+          }
+          break;
+        case 'exst':
+        case 'nxst':
+          selectData.push(`{${select.key}: {$exists: ${'exst' === select.op}}}`);
+          break;
+        case 'ctn':
+          selectData.push(`{${select.key}: {$regex: /.*${select.val}.*/i}}`);
+          break;
+        case 'excl':
+          selectData.push(`{${select.key}: {$regex: /^(?!.*${select.val}).*/i}}`);
+          break;
+        case 'endw':
+          selectData.push(`{${select.key}: {$regex: /${select.val}$/i}}`);
+          break;
+        case 'stw':
+          selectData.push(`{${select.key}: {$regex: /^${select.val}/i}}`);
+          break;
+      }
+    }
+    this.queryStr = selectData.length == 0
+      ? undefined
+      : selectData.length == 1
+        ? selectData[0]
+        : `{$and: [${selectData.join(',')}]}`;
+    this.log.log(`query: ${this.queryStr}`);
+
+    let sortData: string[] = [];
+    for (let i = 0; i < this.sort.length; i++) {
+      let sort = this.sort[i];
+      if (this.sortNull.key === sort.key)
+        continue;
+      sortData.push(`${sort.key}: ${sort.dir}`);
+    }
+    this.sortStr = sortData.length == 0 ? undefined : `{${sortData.join(',')}}`;
+    this.log.log(`sort: ${this.sortStr}`);
+  }
+
   private resetSelect(): { key: string, op: string, val?: string | number | undefined }[] {
+    this.queryStr = undefined;
     let select = Object.assign({}, this.selectNull);
     return [select];
   }
 
   private resetSort(): { key: string, dir: string }[] {
+    this.sortStr = undefined;
     let sort = Object.assign({}, this.sortNull);
     return [sort];
   }
@@ -86,6 +163,18 @@ export class DaHeaderComponent implements OnInit {
     this.isSlim = this.select.length == 1 && this.sort.length == 1;
   }
 
+  public copyQuery(): string | undefined {
+    if (this.data == null)
+      return undefined;
+    this.generateQuery();
+    let str = `db.getCollection('${this.data.table}').find(${this.queryStr ? this.queryStr : '{}'})`;
+    if (this.sortStr) {
+      str = `${str}.sort(${this.sortStr})`;
+    }
+    navigator.clipboard.writeText(str).then(() => this.msg.publish({ level: MessageLevel.Default, text: `Query copied` })).catch(e => this.log.log(e));
+    return str;
+  }
+
   public submit(): void {
     if (!this.data)
       return;
@@ -93,7 +182,6 @@ export class DaHeaderComponent implements OnInit {
       this.log.log(`Select: ${JSON.stringify(this.select)}`);
       this.log.log(`Sort  :  ${JSON.stringify(this.sort)}`);
     }
-
     let params: QueryParameters = this.mongoDb.getQueryParameters(this.data.table);
     params.select = undefined;
     let isSelect = this.select && this.select.length > 0 && this.selectNull.key !== this.select[0].key;
@@ -102,7 +190,7 @@ export class DaHeaderComponent implements OnInit {
       this.select.forEach(sel_ => {
         if (this.selectNull.key !== sel_.key) {
           let type = this.data?.getType(sel_.key);
-          if (sel_.val && type && ['Double', 'Integer', 'Long'].indexOf(type) >= 0) {
+          if (sel_.val && type && ['double', 'int', 'long'].indexOf(type) >= 0) {
             sel_.val = +sel_.val;
           }
           select.push(sel_);

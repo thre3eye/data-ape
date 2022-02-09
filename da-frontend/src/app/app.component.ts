@@ -36,6 +36,14 @@ export class AppComponent implements OnInit {
         this.location.replaceState(url);
       }
     });
+    // this.mongoDb.query.subscribe(query_ => {
+    //   let url = '/';
+    //   if (query_ != null && query_.length > 0) {
+    //     url = `/?query=${decodeURI(query_.replace(/\s/g, ''))}`;
+    //   }
+    // //  window.location.href = url;//assign(url);
+    //  this.location.replaceState(url);
+    // });
   }
 
   ngOnInit(): void {

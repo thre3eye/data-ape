@@ -1,32 +1,30 @@
 package com.isoplane.dataape;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.gt;
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.lt;
-import static com.mongodb.client.model.Filters.lte;
-import static com.mongodb.client.model.Filters.regex;
-import static com.mongodb.client.model.Sorts.ascending;
-import static com.mongodb.client.model.Sorts.descending;
-import static com.mongodb.client.model.Sorts.orderBy;
-
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.isoplane.dataape.DataApeServer.ConfigUtil;
 import com.isoplane.dataape.JsonHelper.SelectParam;
 import com.isoplane.dataape.JsonHelper.SortParam;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+import com.mongodb.QueryBuilder;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -40,12 +38,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MongoDriver {
 
+    static final Logger log = LoggerFactory.getLogger(MongoDriver.class);
+
     private ConfigUtil _config;
     private MongoClient _mongo;
+
+    private Map<String, Map<String, Table>> _tableMap = new HashMap<>();
 
     public MongoDriver(ConfigUtil config_) {
         this._config = config_;
@@ -112,9 +115,6 @@ public class MongoDriver {
             return true;
         }
         return false;
-        //   DeleteResult delete = collection.deleteOne(query);
-        //   boolean result = delete.getDeletedCount() == 1;
-        //  return result;
     }
 
     public String getDatabase() {
@@ -123,11 +123,78 @@ public class MongoDriver {
         return dbName;
     }
 
-    public Set<String> getTables(String database_) {
-        Set<String> tables = new TreeSet<>();
+    public Collection<Table> getTables(String database_, String... tables_) {
+        var start = LocalDateTime.now();
+        Set<String> tableNames = new TreeSet<>();
+        Map<String, Table> tableMap = new TreeMap<>();
+        if (tables_ != null && tables_.length > 0) {
+            tableNames.addAll(Arrays.asList(tables_));
+            var oldMap = this._tableMap.get(database_);
+            if (oldMap == null) {
+                this._tableMap.put(database_, tableMap);
+            } else {
+                oldMap.putAll(tableMap);
+            }
+        } else {
+            MongoDatabase db = this._mongo.getDatabase(database_);
+            db.listCollectionNames().into(tableNames);
+            this._tableMap.put(database_, tableMap);
+        }
+        for (String tableName : tableNames) {
+            Table table = new Table();
+            tableMap.put(tableName, table);
+            table.name = tableName;
+            var fieldMap = getFieldInfo(database_, tableName);
+            //     var fields = fieldMap.keySet().toArray(new String[0]);
+            //     var types = fieldMap.values().toArray(new String[0]);
+            //      table.fields = fields;
+            //      table.types = types;
+            table.fieldMap = fieldMap;
+        }
+        var end = LocalDateTime.now();
+        var duration = Duration.between(start, end);
+        log.debug(String.format("getTables duration: %s", duration));
+        return tableMap.values();
+    }
+
+    private Map<String, String> getFieldInfo(String database_, String tableName_) {
         MongoDatabase db = this._mongo.getDatabase(database_);
-        db.listCollectionNames().into(tables);
-        return tables;
+        MongoCollection<Document> collection = db.getCollection(tableName_);
+
+        var scanLmit = _config.config().getInt("mongo.field.scan.limit");
+        var typeQuery = collection.aggregate(Arrays.asList(
+                new Document("$limit", scanLmit),
+                new Document("$project",
+                        new Document("arrayofkeyvalue", new Document("$objectToArray", "$$ROOT"))),
+                new Document("$unwind", "$arrayofkeyvalue"),
+                new Document("$group",
+                        new Document("_id", "$arrayofkeyvalue.k").append("alltypes",
+                                new Document("$push",
+                                        new Document(new Document("$type", "$arrayofkeyvalue.v")))))));
+        var queryArray = new ArrayList<Document>();
+        Map<String, String> fieldMap = new TreeMap<>();
+        typeQuery.into(queryArray);
+        for (Document doc : queryArray) {
+            var field = (String) doc.get("_id");
+            String type;
+            @SuppressWarnings("unchecked")
+            var types = (List<String>) doc.get("alltypes");
+            if (types == null || types.isEmpty()) {
+                log.error(String.format("getFieldTypes missing value [%s]", field));
+                type = null;
+            } else if (types.size() == 1) {
+                type = types.get(0);
+            } else {
+                Map<String, Long> typeMap = types.stream()
+                        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+                type = typeMap.entrySet().stream().max(Map.Entry.comparingByValue()).map(Entry::getKey).get();
+            }
+            fieldMap.put(field, type);
+        }
+        // if ("trade_ledger".equals(tableName_)) {
+        //     var i = 1;
+        // }
+        return fieldMap;
     }
 
     public Map<String, Object> getData(String database_, String table_, Map<String, String> params_)
@@ -140,66 +207,105 @@ public class MongoDriver {
         String sortJson = MapUtils.getString(params_, "sort");
         List<SortParam> sort = JsonHelper.toSortParam(sortJson);
 
-        Map<String, List<Object>> dataTable = new HashMap<>();
         MongoDatabase db = this._mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
+
+        // NOTE: Primarily for dev when server restarts but not UI
+        if (this._tableMap.isEmpty() || !this._tableMap.containsKey(database_)) {
+            this.getTables(database_);
+        } else if (!this._tableMap.get(database_).containsKey(table_)) {
+            this.getTables(database_, table_);
+        }
+        var tables = _tableMap.get(database_);
+        var table = tables != null ? tables.get(table_) : null;
+        var fieldMap = table != null ? table.fieldMap : null;
+
+        String selectStr = null;
         Bson query = new BsonDocument();
         if (select != null && !select.isEmpty()) {
-            List<Bson> selects = new ArrayList<>();
+            List<DBObject> qos = new ArrayList<>();
             for (SelectParam selectParam : select) {
-                var q = switch (selectParam.op) {
-                    case "gt" -> gt(selectParam.key, selectParam.val);
-                    case "gte" -> gte(selectParam.key, selectParam.val);
-                    case "eq" -> eq(selectParam.key, selectParam.val);
-                    case "lte" -> lte(selectParam.key, selectParam.val);
-                    case "lt" -> lt(selectParam.key, selectParam.val);
+                var paramQb = QueryBuilder.start(selectParam.key);
+                paramQb = switch (selectParam.op) {
+                    case "exst" -> paramQb.exists(true);
+                    case "nxst" -> paramQb.exists(false);
+                    case "gt" -> paramQb.greaterThan(selectParam.val);
+                    case "gte" -> paramQb.greaterThanEquals(selectParam.val);
+                    case "eq" -> paramQb.is(selectParam.val);
+                    case "ne" -> paramQb.notEquals(selectParam.val);
+                    case "lte" -> paramQb.lessThanEquals(selectParam.val);
+                    case "lt" -> paramQb.lessThan(selectParam.val);
                     case "stw" -> {
                         Pattern pattern = Pattern.compile("^" + Pattern.quote(selectParam.val.toString()),
                                 Pattern.CASE_INSENSITIVE);
-                        yield regex(selectParam.key, pattern);
+                        yield paramQb.regex(pattern);
                     }
                     case "ctn" -> {
                         Pattern pattern = Pattern.compile(".*" + Pattern.quote(selectParam.val.toString()) + ".*",
                                 Pattern.CASE_INSENSITIVE);
-                        yield regex(selectParam.key, pattern);
+                        yield paramQb.regex(pattern);
                     }
-                    case "edw" -> {
+                    case "excl" -> {
+                        Pattern pattern = Pattern.compile("^(?!.*" + Pattern.quote(selectParam.val.toString()) + ").*",
+                                Pattern.CASE_INSENSITIVE);
+                        yield paramQb.regex(pattern);
+                    }
+                    case "endw" -> {
                         Pattern pattern = Pattern.compile(Pattern.quote(selectParam.val.toString()) + "$",
                                 Pattern.CASE_INSENSITIVE);
-                        yield regex(selectParam.key, pattern);
+                        yield paramQb.regex(pattern);
                     }
-                    default -> query;
+                    default -> null;
                 };
-                selects.add(q);
+                if (paramQb != null) {
+                    qos.add(paramQb.get());
+                }
             }
-            query = selects.size() == 1 ? selects.get(0) : and(selects);
+            if (!qos.isEmpty()) {
+                var qb = QueryBuilder.start().and(qos.toArray(new DBObject[0]));
+                selectStr = qb.get().toString();
+                query = (Bson) qb.get();
+            }
         }
         long queryCount = isCount ? collection.countDocuments(query) : -1;
         FindIterable<Document> documents;
+        String sortStr = null;
         if (queryCount > 0) {
             documents = collection.find(query);
             if (sort != null && !sort.isEmpty()) {
-                List<Bson> sorts = new ArrayList<>();
+                // NOTE: Using Document to get mql query string
+                Document sortD = new Document();
                 for (SortParam sortParam : sort) {
-                    sorts.add(sortParam.dir < 0
-                            ? descending(sortParam.key)
-                            : ascending(sortParam.key));
+                    sortD.append(sortParam.key, sortParam.dir);
                 }
-                documents = documents.sort(orderBy(sorts));
+                sortStr = sortD.toJson();
+                documents = documents.sort(sortD);
             }
             documents = documents.skip(pageSize * (page - 1)).limit(pageSize);
         } else {
             documents = collection.find().limit(1);
         }
-        Map<String, Object> tableDescription = new HashMap<>();
-        List<String> headers = new ArrayList<>();
-        List<String> types = new ArrayList<>();
+
+        int count = 0;
         List<List<Object>> data = new ArrayList<>();
+        if (fieldMap != null && !fieldMap.isEmpty() && documents != null) {
+            for (String key : fieldMap.keySet()) {
+                count = 0;
+                var keyColumn = new ArrayList<>();
+                data.add(keyColumn);
+                for (Document document : documents) {
+                    var value = document.get(key);
+                    keyColumn.add(value);
+                    count++;
+                }
+            }
+        }
+
+        Map<String, Object> tableDescription = new HashMap<>();
         tableDescription.put("db", database_);
         tableDescription.put("table", table_);
-        tableDescription.put("headers", headers);
-        tableDescription.put("types", types);
-        tableDescription.put("data", queryCount > 0 ? data : new ArrayList<>());
+        tableDescription.put("fieldMap", fieldMap);
+        tableDescription.put("data", data);
         tableDescription.put("querySize", queryCount);
         tableDescription.put("pageSize", pageSize);
         tableDescription.put("page", page);
@@ -209,81 +315,17 @@ public class MongoDriver {
         if (sort != null && !sort.isEmpty()) {
             tableDescription.put("sort", sort);
         }
-
-        int count = 0;
-        for (Document document : documents) {
-            List<String> oldKeys = new ArrayList<>(headers);
-            Set<String> oldKeys2 = new HashSet<>(dataTable.keySet());
-            Set<String> newKeys = document.keySet();
-            for (String key : newKeys) {
-                Object value = document.get(key);
-                if ("_id".equals(key) && ObjectId.class.isInstance(value)) {
-                    value = ((ObjectId) value).toString();
-                }
-                int index = headers.indexOf(key);
-                if (index == -1) {
-                    if (value == null)
-                        continue;
-                    headers.add(key);
-                    oldKeys.add(key);
-                    types.add(value.getClass().getSimpleName());
-                    data.add(this.createDataArray(count));
-                    index = headers.size() - 1;
-                }
-                List<Object> column = data.get(index);
-                column.add(value);
-                oldKeys.remove(key);
-
-                List<Object> row = this.backfill(dataTable, key, count, value);
-                row.add(value);
-                oldKeys2.remove(key);
-            }
-            // Backfill with NULL
-            for (String key : oldKeys) {
-                int index = headers.indexOf(key);
-                data.get(index).add(null);
-            }
-
-            for (String key : oldKeys2) {
-                List<Object> row = dataTable.get(key);
-                row.add(null);
-            }
-            count++;
-        }
+        selectStr = StringUtils.isBlank(selectStr) ? "" : String.format(", 'filter':%s", selectStr).replace('"', '\'');
+        sortStr = StringUtils.isBlank(sortStr) ? "" : String.format(", 'sort':%s", sortStr).replace('"', '\'');
+        var queryStr = String.format("{%s %s}", table_, selectStr, sortStr); // NOTE: We only want to allow find queries # find':'%s' 
+        tableDescription.put("query", queryStr);
         tableDescription.put("dataSize", queryCount > 0 ? count : 0);
         return tableDescription;
     }
 
-    private List<Object> createDataArray(int count_) {
-        List<Object> list = new ArrayList<>();
-        for (var i = 0; i < count_; i++) {
-            list.add(null);
-        }
-        return list;
-    }
-
-    private List<Object> backfill(Map<String, List<Object>> map_, String key_, int count_, Object value_) {
-        List<Object> row = map_.get(key_);
-        if (row != null)
-            return row;
-        row = new ArrayList<>(count_);
-        map_.put(key_, row);
-        String type = getType(value_);
-        row.add(type);
-        // Backfill
-        for (var i = 0; i < count_; i++) {
-            if (row.size() - 1 == count_)
-                break;
-            row.add(null);
-        }
-        return row;
-    }
-
-    private String getType(Object value_) {
-        if (value_ == null)
-            return null;
-        String type = value_.getClass().getSimpleName();
-        return type;
+    public static class Table {
+        public String name;
+        public Map<String, String> fieldMap;
     }
 
 }

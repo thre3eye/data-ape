@@ -1,6 +1,7 @@
 import { Pipe, PipeTransform } from '@angular/core';
 import { TableDescription } from './da-mongo.service';
 
+// Deprecated
 @Pipe({
   name: 'daData'
 })
@@ -15,9 +16,9 @@ export class DaDataPipe implements PipeTransform {
     let value = data_.data[x][y];
     if (value == null)
       return value;
-    let type = data_.types[x];
+    let type ='';// data_.types[x];
     switch (type) {
-      case 'Double':
+      case 'double':
         if (!isNaN(value)) {
           value = (+value).toFixed(2);
         }

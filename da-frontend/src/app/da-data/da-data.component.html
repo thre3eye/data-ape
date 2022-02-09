@@ -1,25 +1,3 @@
-<!-- <div class="content">
-    <table *ngIf="data" class="fixed_headers">
-        <thead>
-            <tr>
-                <th *ngFor="let header of data.getHeaders()" draggable="true" (dragstart)="onDragStart($event, header)"
-                    (dragover)="$event.preventDefault()" (drop)="$event.preventDefault();drop($event);"
-                    (contextmenu)="$event.preventDefault();headerContextMenu($event, header);">
-                    <div class="header-cell" title="{{header}}">{{header}}</div>
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr *ngFor="let item of [].constructor((data?.pageSize ??0) - 1); let j = index"
-                (contextmenu)="$event.preventDefault();dataContextMenu($event, j);">
-                <td *ngFor="let col of data.getData(), let i = index" (click)=selectCell(col[j])>
-                    <div class="data-cell {{data.getStyleClass(i)}}" [ngClass]="{'highlight': col[j]===highlight}">
-                        {{col[j]}}</div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</div> -->
 
 <as-split direction="vertical" [useTransition]="true" unit="pixel">
     <as-split-area>
@@ -42,7 +20,7 @@
                         <td *ngFor="let col of data.getData(), let i = index" (click)=selectCell(col[j])>
                             <div class="data-cell {{data.getStyleClass(i)}}"
                                 [ngClass]="{'highlight': col[j]===highlight}">
-                                {{col[j]}}</div>
+                                {{col[j] | daFormat:data:i:decimalDigits}}</div>
                         </td>
                     </tr>
                 </tbody>

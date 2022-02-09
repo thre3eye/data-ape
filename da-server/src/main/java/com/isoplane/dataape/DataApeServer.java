@@ -54,7 +54,6 @@ public class DataApeServer {
         int port = config.getInt("server.port");
         _server = Javalin.create(config_ -> {
             config_.enableCorsForAllOrigins();
-            //  config_.jsonMapper(jsonMapper);
             boolean isWebDebugLog = config.getBoolean("server.debug.logging", false);
             if (isWebDebugLog) {
                 config_.enableDevLogging();
@@ -99,8 +98,9 @@ public class DataApeServer {
         });
         _server.get("/tables/{database}", ctx_ -> {
             String database = ctx_.pathParam("database");
-            Set<String> tables = this._mongo.getTables(database);
-            Map<String, Object> tableMap = Collections.singletonMap("tables", tables);
+            var tables = this._mongo.getTables(database);
+            var decimalDigits = _config.config().getInteger("ui.decimaldigits", 2);
+            Map<String, Object> tableMap = Map.of("tables", tables, "decimaldigits", decimalDigits);
             ctx_.json(tableMap);
         });
         _server.get("/data/{database}/{table}", ctx_ -> {

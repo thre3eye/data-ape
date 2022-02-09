@@ -17,6 +17,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
   public highlight?: string;
   public selection?: { table: string, idx: number, data: any };
   public selectionText?: string;
+  public decimalDigits = 2;
 
   constructor(
     private log: DaLogService,
@@ -101,6 +102,17 @@ export class DaDataComponent implements OnInit, AfterViewInit {
         this.deleteRecord(id);
         break;
       case 'view':
+        // for (let i = 0; i < this.data.headers.length; i++) {
+        //   let type = this.data.types[i];
+        //   if ('double' !== type)
+        //     continue;
+        //   let field = this.data.headers[i];
+        //   let val = obj[field];
+        //   if (val == null || isNaN(val))
+        //     continue;
+        //   let dval = (val / 100.0) * 100.0;
+        //   obj[field] = dval;
+        // }
         this.selection = { table: this.data.table, idx: idx, data: obj };
         this.selectionText = JSON.stringify(obj, null, 2);
         break;
@@ -165,6 +177,7 @@ export class DaDataComponent implements OnInit, AfterViewInit {
         return;
       //     this.viewIdx = undefined;
       this.data = data_;
+      this.decimalDigits = this.mongoDb.getDecimalDigits();
       this.highlight = this.mongoDb.getQueryParameters(this.data.table).highlight;
     })
   }

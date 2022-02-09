@@ -83,21 +83,27 @@
     }
 
     .ArrayList,
-    .Document {
+    .Document,
+    .array,
+    .object {
         max-width: 100pt;
         text-align: left;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    .Double {
+    .Double,
+    .double {
         text-align: right;
     }
     .Integer,
-    .Long {
+    .Long,
+    .int,
+    .long {
         text-align: right;
     }
-    .String {
+    .String,
+    .string {
         text-align: left;
     }
 }

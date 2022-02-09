@@ -1,4 +1,4 @@
-<div class="content">
+<div class="content" [ngClass]="{'slim': isSlim, 'tall': !isSlim}">
     <div *ngIf="data && data.querySize &gt;= 0" class="pagination">
         <div class="total-lbl">Total:</div>
         <div class="total-val">{{data.querySize}}</div>
@@ -10,10 +10,22 @@
                 (keyup.enter)="setPaging()"></div>
 
         <div class="filler">&#65372;</div>
-        
+
         <div class="export-button">
             <div class="button" (click)="export()" title="Copy CSV to Clipboard">✂</div>
         </div>
     </div>
     <div class="messages {{message.level}}">{{message.text}}</div>
+
+    <div class="panel-button">
+        <div class="button" (click)="isSlim = !isSlim" title="{{isSlim ? 'Show' : 'Hide'}} settings...">{{isSlim
+            ? '&#9650;':'&#9660;'}}</div>
+    </div>
+
+    <div class="decimals">
+        <div class="settings-lbl">Settings:</div>
+        <div class="decimals-lbl">decimals:</div>
+        <div class="decimals-val"><input #decimalsVal class="decimals-inp" type="number" [(ngModel)]="decimals"
+                (keyup.enter)="setDecimals()"></div>
+    </div>
 </div>
