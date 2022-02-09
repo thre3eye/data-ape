@@ -50,6 +50,7 @@ Missing features can be added if there is interest and related submissions are w
 ### Features:
    - Select, view and page through tabular data (database table, etc)
    - Query data with filters in GUI
+   - Export query as MQL
    - Light-weight JSON based record editing; Record deletion
    - Query through URL. Example:  
      http://&lt;host&gt;:&lt;port&gt;/?db=my_db&table=my_table&page=2&pageSize=40&sort=[{"key":"name","dir":"-1"}]&select=[{"key":"name","op":"stw","val":"A"}]&highlight=London
@@ -70,6 +71,7 @@ Missing features can be added if there is interest and related submissions are w
 
 ### Tips
    - To easily define order/hide/view columns in the config file, first arrange the view in the GUI, then export to CSV and copy the headers into the config columns.
+   - Your browser may block certain features such as clipboard access. Fix it with this flag: chrome://flags/#unsafely-treat-insecure-origin-as-secure
 
 
 #### Thanks for looking!
