@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Message } from '@angular/compiler/src/i18n/i18n_ast';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, catchError, finalize, map, Observable, of, Subject, take } from 'rxjs';
+import { BehaviorSubject, catchError, finalize, ignoreElements, map, Observable, of, Subject, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ConfigData, DaConfigService } from './da-config.service';
 import { DaLogService } from './da-log.service';
@@ -128,6 +129,7 @@ export class DaMongoService {
     let url = `${environment.server}tables/${db_}`;
     let response = this.http.get<{ 'tables': Table[], 'decimaldigits': number }>(url).pipe(
       map(resp_ => {
+        this.msg.publish({ level: MessageLevel.Default, text: `Tables loaded` });
         return resp_.tables;
       }),
       catchError(err_ => {
@@ -158,7 +160,10 @@ export class DaMongoService {
   }
 
   public getTableData(db_: string, table_: string, queryParams_?: QueryParameters): void {
-    this.isLoading.next(true);
+    let isSkipStatus = this.isLoading.getValue();
+    if (!isSkipStatus) {
+      this.isLoading.next(true);
+    }
     let httpParams = new HttpParams();
     if (queryParams_) {
       httpParams = httpParams.set('page', queryParams_.page + "");
@@ -191,7 +196,10 @@ export class DaMongoService {
     let response = this.http.get<TableDescriptionWrapper>(url, { params: httpParams });
     response.pipe(
       map(data_ => {
-        let data = Object.assign(new TableDescriptionImpl(), data_.data, { headers: Object.getOwnPropertyNames(data_.data.fieldMap) });
+        let data = Object.assign(new TableDescriptionImpl(), data_.data);
+        if (data_.data.fieldMap != null) {
+          data.headers = Object.getOwnPropertyNames(data_.data.fieldMap);
+        }
         let cols = this.displayMap.get(data.table);
         if (cols && cols.length > 0) {
           data.setActiveColumns(cols);
@@ -210,7 +218,7 @@ export class DaMongoService {
         this.msg.publish({ level: MessageLevel.Error, text: 'Error getting Data' });
         return of([]);
       }),
-      finalize(() => this.isLoading.next(false))
+      finalize(() => { if (!isSkipStatus) { this.isLoading.next(false) }; })
     ).subscribe();
   }
 

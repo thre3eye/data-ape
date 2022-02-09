@@ -2,7 +2,7 @@
     <div class="header">
         <div>DB: </div>
         <div class="db">{{db}}</div>
-        <div class="refresh" title="Refresh" (click)="refresh()">↻</div>
+        <div class="refresh" title="Reload tables..." (click)="refresh()">↻</div>
     </div>
     <div class="tables">
         <div *ngIf="isLoading" class="loader-wrapper">
