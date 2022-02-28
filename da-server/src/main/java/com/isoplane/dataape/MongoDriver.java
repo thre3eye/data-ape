@@ -86,10 +86,38 @@ public class MongoDriver {
         if (StringUtils.isBlank(id)) {
             return false;
         }
-        Bson query = Filters.eq("_id", id);
-        ReplaceOptions options = new ReplaceOptions().upsert(true);
         MongoDatabase db = this._mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
+        Bson query = Filters.eq("_id", id);
+        Document oldDoc = collection.find(query).first();
+        if (oldDoc != null) {
+            var i = doc_.entrySet().iterator();
+            while (i.hasNext()) {
+                var entry = i.next();
+                Object oldValue = oldDoc.get(entry.getKey());
+                Object newValue = entry.getValue();
+                if (oldValue == null && newValue == null) {
+                    i.remove();
+                } else if (oldValue instanceof Number && newValue instanceof Number) {
+                    Number numValue = (Number) newValue;
+                    if (oldValue instanceof Byte) {
+                        numValue = numValue.byteValue();
+                    } else if (oldValue instanceof Double) {
+                        numValue = numValue.doubleValue();
+                    } else if (oldValue instanceof Float) {
+                        numValue = numValue.floatValue();
+                    } else if (oldValue instanceof Integer) {
+                        numValue = numValue.intValue();
+                    } else if (oldValue instanceof Long) {
+                        numValue = numValue.longValue();
+                    } else if (oldValue instanceof Short) {
+                        numValue = numValue.shortValue();
+                    }
+                    entry.setValue(numValue);
+                }
+            }
+        }
+        ReplaceOptions options = new ReplaceOptions().upsert(true);
         UpdateResult update = collection.replaceOne(query, doc_, options);
         boolean result = update.getMatchedCount() == 1;
         return result;

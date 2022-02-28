@@ -80,6 +80,8 @@ export class DaHeaderComponent implements OnInit {
     let selectData: string[] = [];
     for (let i = 0; i < this.select.length; i++) {
       let select = this.select[i];
+      if (this.selectNull.key === select.key)
+        continue;
       switch (select.op) {
         case 'eq':
         case 'gt':
@@ -149,6 +151,7 @@ export class DaHeaderComponent implements OnInit {
     } else {
       this.select.splice(idx_, 1);
     }
+    this.generateQuery();
     this.isSlim = this.select.length == 1 && this.sort.length == 1;
   }
 
@@ -160,6 +163,7 @@ export class DaHeaderComponent implements OnInit {
     } else {
       this.sort.splice(idx_, 1);
     }
+    this.generateQuery();
     this.isSlim = this.select.length == 1 && this.sort.length == 1;
   }
 
