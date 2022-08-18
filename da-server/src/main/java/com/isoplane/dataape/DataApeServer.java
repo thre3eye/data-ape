@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.MissingFormatArgumentException;
 import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.isoplane.dataape.MongoDriver.MissingDbConnectionException;
+import com.isoplane.dataape.MongoDriver.DADatabaseException;
 
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
@@ -146,8 +145,9 @@ public class DataApeServer {
             boolean result = this._mongo.delete(database, table, id);
             ctx_.json(Collections.singletonMap("result", result));
         });
-        _server.exception(MissingDbConnectionException.class, (err_, ctx_) -> {
-            var msgMap = Map.of("error", "DB not initialized");
+        _server.exception(DADatabaseException.class, (err_, ctx_) -> {
+            var msg = err_.getMessage();
+            var msgMap = Map.of("error", StringUtils.isBlank(msg) ? "DB Error" : msg);
             ctx_.status(500);
             ctx_.json(msgMap);
         });

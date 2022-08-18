@@ -186,7 +186,7 @@ public class MongoDriver {
 
     public DbDescription getTables(String database_, String... tables_) {
         if (this._mongo == null) {
-            throw new MissingDbConnectionException();
+            throw new DADatabaseException("DB not initialized");
         }
         var start = LocalDateTime.now();
         Set<String> tableNames = new TreeSet<>();
@@ -268,7 +268,7 @@ public class MongoDriver {
     public Map<String, Object> getData(String database_, String table_, Map<String, String> params_)
             throws IOException {
         if (this._mongo == null) {
-            throw new MissingDbConnectionException();
+            throw new DADatabaseException("DB not initialized");
         }
         boolean isCount = MapUtils.getBooleanValue(params_, "count_total", true);
         int page = MapUtils.getIntValue(params_, "page", 1);
@@ -405,8 +405,15 @@ public class MongoDriver {
         public Collection<Table> tables;
     }
 
-    public static class MissingDbConnectionException extends RuntimeException {
+    public static class DADatabaseException extends RuntimeException {
 
+        public DADatabaseException() {
+            super();
+        }
+
+        public DADatabaseException(String msg_) {
+            super(msg_);
+        }
     }
 
 }
