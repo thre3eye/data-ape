@@ -65,6 +65,7 @@ Missing features can be added if there is interest and related submissions are w
    - Deal with non-primitive and nested data columns
    - Create dockerfile for build
    - Persist and GUI-edit configuration
+   - Multi-user support. For now the server only maintains one share DB connection for all connected browsers (A security concern if unauthorized users have access to the network. This needs to be addressed, but has low priority for our current use case as dev-db UI)
 
 ### Tips
    - To easily define order/hide/view columns in the config file, first arrange the view in the GUI, then export to CSV and copy the headers into the config columns.
