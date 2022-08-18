@@ -3,6 +3,7 @@ package com.isoplane.dataape;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,6 @@ import io.javalin.http.staticfiles.Location;
 
 /**
  * Hello world!
- *
  */
 public class DataApeServer {
 
@@ -84,10 +84,25 @@ public class DataApeServer {
                 } catch (Exception ex) {
                     log.error("Error getting remote address", ex);
                 }
-                log.debug(String.format("Request method : %s", method));
-                log.debug(String.format("Request path   : %s", ctxPath));
-                log.debug(String.format("Request IP     : %s", ipStr));
-                log.debug(String.format("Request headers: %s", headers));
+
+                var session = ctx_.req.getSession();
+                var sessionId = session.getId();
+                if (session.isNew()) {
+                    log.info(String.format("New session"));
+                    session.setMaxInactiveInterval(600);
+                }
+                var ival = session.getMaxInactiveInterval();
+                var last = session.getLastAccessedTime();
+                var timeout = last + 1000 * ival;
+                this._mongo.updateSession(sessionId, timeout);
+                if (log.isDebugEnabled()) {
+                    log.debug(String.format("Request method : %s", method));
+                    log.debug(String.format("Request path   : %s", ctxPath));
+                    log.debug(String.format("Request IP     : %s", ipStr));
+                    log.debug(String.format("Request headers: %s", headers));
+                    log.debug(String.format("Request session: %s", sessionId));
+                    log.debug(String.format("Request time   : %s", new Date(last)));
+                }
             }
         });
         _server.after(ctx_ -> {
@@ -96,53 +111,51 @@ public class DataApeServer {
             ctx_.header("Expires", "0");
         });
         _server.post("/connect", ctx_ -> {
+            var sessionId = ctx_.req.getSession().getId();
             var cstr1 = ctx_.queryParam("cstr");
             log.debug(String.format("cstr: %s", cstr1));
             var json = ctx_.body();
             var cstr = StringUtils.isBlank(json) ? null
                     : (String) _jsonMapper.readValue(json, HashMap.class).get("cstr");
-            var db = this._mongo.connect(cstr);
+            var db = this._mongo.connect(sessionId, cstr);
             var decimalDigits = _config.config().getInteger("ui.decimaldigits", 2);
             Map<String, Object> tableMap = Map.of("dbName", db.name, "tables", db.tables, "decimaldigits",
                     decimalDigits);
             ctx_.json(tableMap);
         });
-        _server.get("/database", ctx_ -> {
-            String dbName = this._mongo.getDatabase();
-            Map<String, Object> dbMap = Collections.singletonMap("dbName", dbName);
-            ctx_.json(dbMap);
-        });
         _server.get("/tables/{database}", ctx_ -> {
+            var sessionId = ctx_.req.getSession().getId();
             String database = ctx_.pathParam("database");
-            var db = this._mongo.getTables(database);
+            var db = this._mongo.getTables(sessionId, database);
             var decimalDigits = _config.config().getInteger("ui.decimaldigits", 2);
             var tableMap = Map.of("dbName", db.name, "tables", db.tables, "decimaldigits", decimalDigits);
             ctx_.json(tableMap);
         });
         _server.get("/data/{database}/{table}", ctx_ -> {
+            var sessionId = ctx_.req.getSession().getId();
             String database = ctx_.pathParam("database");
             String table = ctx_.pathParam("table");
             Map<String, List<String>> paramss = ctx_.queryParamMap();
             Map<String, String> params = paramss.entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().get(0)));
-            // .map(e -> new SimpleEntry<String, String>(e.getKey(),
-            // e.getValue().get(0))).collect(Collectors.toMap());
-            Map<String, Object> tableDescription = this._mongo.getData(database, table, params);
+            Map<String, Object> tableDescription = this._mongo.getData(sessionId, database, table, params);
             Map<String, Object> dataMap = Collections.singletonMap("data", tableDescription);
             ctx_.json(dataMap);
         });
         _server.put("/save/{database}/{table}", ctx_ -> {
+            var sessionId = ctx_.req.getSession().getId();
             String database = ctx_.pathParam("database");
             String table = ctx_.pathParam("table");
             String json = ctx_.body();
-            boolean result = this._mongo.update(database, table, json);
+            boolean result = this._mongo.update(sessionId, database, table, json);
             ctx_.json(Collections.singletonMap("result", result));
         });
         _server.delete("/delete/{database}/{table}/{id}", ctx_ -> {
+            var sessionId = ctx_.req.getSession().getId();
             String database = ctx_.pathParam("database");
             String table = ctx_.pathParam("table");
             String id = ctx_.pathParam("id");
-            boolean result = this._mongo.delete(database, table, id);
+            boolean result = this._mongo.delete(sessionId, database, table, id);
             ctx_.json(Collections.singletonMap("result", result));
         });
         _server.exception(DADatabaseException.class, (err_, ctx_) -> {
@@ -218,18 +231,5 @@ public class DataApeServer {
         }
 
     }
-
-    // public static class JsonNullMapper implements JsonMapper {
-    // @Override
-    // public String toJsonString(@NotNull Object obj) {
-    // StdSerializerProvider sp = new StdSerializerProvider();
-    // return gson.toJson(obj);
-    // }
-    // @Override
-    // public <T> T fromJsonString(@NotNull String json, @NotNull Class<T>
-    // targetClass) {
-    // return gson.fromJson(json, targetClass);
-    // }
-    // }
 
 }

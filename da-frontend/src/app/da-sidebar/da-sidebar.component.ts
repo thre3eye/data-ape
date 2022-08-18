@@ -34,7 +34,10 @@ export class DaSidebarComponent implements OnInit {
         return;
       this.db = db_.dbName;
       this.tables = db_.tables;
-    })
+    });
+    this.bus.isTopVisible.subscribe(status_ => {
+      this.isTopVisible = status_;
+    });
   }
 
   public connect(): void {

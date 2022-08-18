@@ -144,16 +144,16 @@ export class DaMongoService {
     return response;
   }
 
-  public getDatabase(): Observable<DatabaseDescription> {
-    let url = `${environment.server}database`;
-    let response = this.http.get<DatabaseDescription>(url);
-    response.subscribe(db_ => {
-      this.config.config.subscribe(cfg_ => {
-        this.initializeConfig(db_.dbName, cfg_);
-      });
-    })
-    return response;
-  }
+  // public getDatabase(): Observable<DatabaseDescription> {
+  //   let url = `${environment.server}database`;
+  //   let response = this.http.get<DatabaseDescription>(url);
+  //   response.subscribe(db_ => {
+  //     this.config.config.subscribe(cfg_ => {
+  //       this.initializeConfig(db_.dbName, cfg_);
+  //     });
+  //   })
+  //   return response;
+  // }
 
   // public getTables(db_: string): Observable<DatabaseDescription | null> {
   public getTables(db_: string): void {

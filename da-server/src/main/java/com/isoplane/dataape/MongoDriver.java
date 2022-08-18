@@ -47,7 +47,8 @@ public class MongoDriver {
     static final Logger log = LoggerFactory.getLogger(MongoDriver.class);
 
     private ConfigUtil _config;
-    private MongoClient _mongo;
+    private Map<String, Long> _sessionTimeoutMap = new HashMap<>();
+    private Map<String, MongoClient> _sessionClientMap = new HashMap<>();
 
     private Map<String, Map<String, Table>> _tableMap = new HashMap<>();
 
@@ -58,25 +59,7 @@ public class MongoDriver {
 
     private void init() {
         try {
-            Configuration config = _config.config();
-            String dbName = config.getString("mongo.db");
-            String user = config.getString("mongo.user");
-            String pass = config.getString("mongo.pass");
-            String connectionStr = config.getString("mongo.cstr");
 
-            if (StringUtils.isNotBlank(dbName) && StringUtils.isNotBlank(user) && StringUtils.isNotBlank(pass)
-                    && StringUtils.isNotBlank(connectionStr)) {
-                user = URLEncoder.encode(user, "UTF-8");
-                pass = URLEncoder.encode(pass, "UTF-8");
-                if (connectionStr.contains("%s")) {
-                    connectionStr = String.format(connectionStr, user, pass, dbName);
-                }
-                MongoClientURI uri = new MongoClientURI(connectionStr);
-                this._mongo = new MongoClient(uri);
-                log.info(String.format("Pre-defined DB connection [%s]", dbName));
-            } else {
-                log.info(String.format("No pre-defined DB connection"));
-            }
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -85,7 +68,7 @@ public class MongoDriver {
     // Expects format:
     // mongodb://<user>:<password>@<address>/<database>
     // ?retryWrites=false (or other options)
-    public DbDescription connect(String cstr_) {
+    public DbDescription connect(String sessionId_, String cstr_) {
         var startIdx = cstr_.indexOf("://");
         var endIdx = cstr_.lastIndexOf("@");
         var tokenStr = cstr_.substring(startIdx + "://".length(), endIdx);
@@ -99,27 +82,35 @@ public class MongoDriver {
         var dbName = endIdx < 0 ? cstr_.substring(startIdx + 1) : cstr_.substring(startIdx + 1, endIdx);
 
         var uri = new MongoClientURI(cstr);
-        this._mongo = new MongoClient(uri);
-        var dbn = this._mongo.listDatabaseNames();
+        var mongo = new MongoClient(uri);
+        this._sessionClientMap.put(sessionId_, mongo);
+
+        var dbn = mongo.listDatabaseNames();
         var dbNames = dbn.into(new ArrayList<>());
         log.info(String.format("Connected [%s]: %s", dbName, dbNames));
 
-        var db = this.getTables(dbName);
+        var db = this.getTables(sessionId_, dbName);
+
+        // this._mongo = mongo;
         return db;
     }
 
-    public boolean update(String database_, String table_, String json_) {
+    public boolean update(String sessionId_, String database_, String table_, String json_) {
         Document doc = StringUtils.isBlank(json_) ? null : Document.parse(json_);
-        boolean result = updateDocument(database_, table_, doc);
+        boolean result = updateDocument(sessionId_, database_, table_, doc);
         return result;
     }
 
-    private boolean updateDocument(String database_, String table_, Document doc_) {
+    private boolean updateDocument(String sessionId_, String database_, String table_, Document doc_) {
+        var mongo = this._sessionClientMap.get(sessionId_);
+        if (mongo == null) {
+            throw new DADatabaseException("DB not initialized");
+        }
         String id = doc_ != null ? (String) doc_.remove("_id") : null;
         if (StringUtils.isBlank(id)) {
             return false;
         }
-        MongoDatabase db = this._mongo.getDatabase(database_);
+        MongoDatabase db = mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
         Bson query = Filters.eq("_id", id);
         Document oldDoc = collection.find(query).first();
@@ -156,12 +147,16 @@ public class MongoDriver {
         return result;
     }
 
-    public boolean delete(String database_, String table_, String id_) {
+    public boolean delete(String sessionId_, String database_, String table_, String id_) {
+        var mongo = this._sessionClientMap.get(sessionId_);
+        if (mongo == null) {
+            throw new DADatabaseException("DB not initialized");
+        }
         if (StringUtils.isBlank(id_)) {
             return false;
         }
         Bson query = Filters.eq("_id", id_);
-        MongoDatabase db = this._mongo.getDatabase(database_);
+        MongoDatabase db = mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
 
         Document doc = collection.findOneAndDelete(query);
@@ -171,21 +166,16 @@ public class MongoDriver {
             String postFix = config.getString("mongo.deleted.postfix", "");
             if (!StringUtils.isBlank(String.format("%s%s", preFix, postFix).trim())) {
                 String deleteTable = String.format("%s%s%s", preFix, table_, postFix);
-                updateDocument(database_, deleteTable, doc);
+                updateDocument(sessionId_, database_, deleteTable, doc);
             }
             return true;
         }
         return false;
     }
 
-    public String getDatabase() {
-        Configuration config = _config.config();
-        String dbName = config.getString("mongo.db");
-        return dbName;
-    }
-
-    public DbDescription getTables(String database_, String... tables_) {
-        if (this._mongo == null) {
+    public DbDescription getTables(String sessionId_, String database_, String... tables_) {
+        var mongo = this._sessionClientMap.get(sessionId_);
+        if (mongo == null) {
             throw new DADatabaseException("DB not initialized");
         }
         var start = LocalDateTime.now();
@@ -200,7 +190,7 @@ public class MongoDriver {
                 oldMap.putAll(tableMap);
             }
         } else {
-            MongoDatabase db = this._mongo.getDatabase(database_);
+            MongoDatabase db = mongo.getDatabase(database_);
             db.listCollectionNames().into(tableNames);
             this._tableMap.put(database_, tableMap);
         }
@@ -208,11 +198,7 @@ public class MongoDriver {
             Table table = new Table();
             tableMap.put(tableName, table);
             table.name = tableName;
-            var fieldMap = getFieldInfo(database_, tableName);
-            // var fields = fieldMap.keySet().toArray(new String[0]);
-            // var types = fieldMap.values().toArray(new String[0]);
-            // table.fields = fields;
-            // table.types = types;
+            var fieldMap = getFieldInfo(sessionId_, database_, tableName);
             table.fieldMap = fieldMap;
         }
         var end = LocalDateTime.now();
@@ -225,8 +211,12 @@ public class MongoDriver {
         return db;
     }
 
-    private Map<String, String> getFieldInfo(String database_, String tableName_) {
-        MongoDatabase db = this._mongo.getDatabase(database_);
+    private Map<String, String> getFieldInfo(String sessionId_, String database_, String tableName_) {
+        var mongo = this._sessionClientMap.get(sessionId_);
+        if (mongo == null) {
+            throw new DADatabaseException("DB not initialized");
+        }
+        MongoDatabase db = mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(tableName_);
 
         var scanLmit = _config.config().getInt("mongo.field.scan.limit");
@@ -259,15 +249,13 @@ public class MongoDriver {
             }
             fieldMap.put(field, type);
         }
-        // if ("trade_ledger".equals(tableName_)) {
-        // var i = 1;
-        // }
         return fieldMap;
     }
 
-    public Map<String, Object> getData(String database_, String table_, Map<String, String> params_)
+    public Map<String, Object> getData(String sessionId_, String database_, String table_, Map<String, String> params_)
             throws IOException {
-        if (this._mongo == null) {
+        var mongo = this._sessionClientMap.get(sessionId_);
+        if (mongo == null) {
             throw new DADatabaseException("DB not initialized");
         }
         boolean isCount = MapUtils.getBooleanValue(params_, "count_total", true);
@@ -278,12 +266,12 @@ public class MongoDriver {
         String sortJson = MapUtils.getString(params_, "sort");
         List<SortParam> sort = JsonHelper.toSortParam(sortJson);
 
-        MongoDatabase db = this._mongo.getDatabase(database_);
+        MongoDatabase db = mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(table_);
 
         // NOTE: Primarily for dev when server restarts but not UI
         if (this._tableMap.isEmpty() || !this._tableMap.containsKey(database_)) {
-            this.getTables(database_);
+            this.getTables(sessionId_, database_);
         } else if (!this._tableMap.get(database_).containsKey(table_)) {
             this.getTables(database_, table_);
         }
@@ -414,6 +402,10 @@ public class MongoDriver {
         public DADatabaseException(String msg_) {
             super(msg_);
         }
+    }
+
+    public void updateSession(String sessionId_, long timeout_) {
+        this._sessionTimeoutMap.put(sessionId_, timeout_);
     }
 
 }
