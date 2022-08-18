@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    //
+    // https://code.visualstudio.com/docs/java/java-debugging
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Launch DataApeServer",
+            "request": "launch",
+            "mainClass": "com.isoplane.dataape.DataApeServer",
+            "projectName": "da-server",
+            "args": "${workspaceFolder}/da-server/da.properties",
+//            "args": "${workspaceFolder}/NOCHECKIN_da.properties,${workspaceFolder}/da-server/da.properties",
+            "vmArgs": "-Dlogback.configurationFile=${workspaceFolder}/da-server/da-logback.xml"
+        },
+        {
+            "type": "pwa-msedge",
+            //    "type": "msedge",
+            "request": "launch",
+            "port": 9222,
+            "name": "Launch Edge against localhost",
+            "url": "http://localhost:4200",
+            "webRoot": "${workspaceFolder}/da-frontend"
+        },
+        // {
+        //     "name": "ng serve",
+        //     "type": "chrome",
+        //     "request": "launch",
+        //     "preLaunchTask": "ng serve",
+        //     "url": "http://localhost:4200",
+        //     "webRoot": "${workspaceFolder}",
+        //     "sourceMapPathOverrides": {
+        //         "webpack:/*": "${webRoot}/*",
+        //         "/./*": "${webRoot}/*",
+        //         "/src/*": "${webRoot}/*",
+        //         "/*": "*",
+        //         "/./~/*": "${webRoot}/node_modules/*"
+        //     }
+        // },
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Serve Angular",
+    //    "taskName": "serve",
+        "type": "shell",
+        "command": "npm start",
+        "problemMatcher": [
+            "$tsc"
+        ]
+    },
+    ]
+  }

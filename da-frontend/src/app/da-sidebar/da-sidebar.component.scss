@@ -36,6 +36,15 @@
                 cursor: pointer;
             }
         }
+        .connect {
+            padding-left: 10pt;
+            font-size: 13pt;
+            &:hover {
+                font-weight: bold;
+                cursor: pointer;
+            }
+        }
+
     }
     .tables {
         grid-row: 2;

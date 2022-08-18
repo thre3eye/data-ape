@@ -22,6 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 
@@ -36,6 +38,7 @@ public class DataApeServer {
     private ConfigUtil _config;
     private Javalin _server;
     private MongoDriver _mongo;
+    private ObjectMapper _jsonMapper;
 
     public static void main(String[] args_) {
         DataApeServer server = new DataApeServer();
@@ -44,6 +47,7 @@ public class DataApeServer {
     }
 
     private void init(String propertiesPath_, boolean isReloading_) {
+        _jsonMapper = new ObjectMapper();
         _config = new ConfigUtil(propertiesPath_, isReloading_);
         _mongo = new MongoDriver(_config);
     }
@@ -90,6 +94,17 @@ public class DataApeServer {
             ctx_.header("Pragma", "no-cache");
             ctx_.header("Expires", "0");
         });
+        _server.post("/connect", ctx_ -> {
+            var cstr1 = ctx_.queryParam("cstr");
+            log.debug(String.format("cstr: %s", cstr1));
+            var json = ctx_.body();
+            var cstr = StringUtils.isBlank(json) ? null
+                    : (String) _jsonMapper.readValue(json, HashMap.class).get("cstr");
+            var db = this._mongo.connect(cstr);
+            var decimalDigits = _config.config().getInteger("ui.decimaldigits", 2);
+            Map<String, Object> tableMap = Map.of("dbName", db.name, "tables", db.tables, "decimaldigits", decimalDigits);
+            ctx_.json(tableMap);
+        });
         _server.get("/database", ctx_ -> {
             String dbName = this._mongo.getDatabase();
             Map<String, Object> dbMap = Collections.singletonMap("dbName", dbName);
@@ -97,9 +112,9 @@ public class DataApeServer {
         });
         _server.get("/tables/{database}", ctx_ -> {
             String database = ctx_.pathParam("database");
-            var tables = this._mongo.getTables(database);
+            var db = this._mongo.getTables(database);
             var decimalDigits = _config.config().getInteger("ui.decimaldigits", 2);
-            Map<String, Object> tableMap = Map.of("tables", tables, "decimaldigits", decimalDigits);
+            Map<String, Object> tableMap = Map.of("name", db.name, "tables", db.tables, "decimaldigits", decimalDigits);
             ctx_.json(tableMap);
         });
         _server.get("/data/{database}/{table}", ctx_ -> {
@@ -108,7 +123,8 @@ public class DataApeServer {
             Map<String, List<String>> paramss = ctx_.queryParamMap();
             Map<String, String> params = paramss.entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().get(0)));
-            //     .map(e -> new SimpleEntry<String, String>(e.getKey(), e.getValue().get(0))).collect(Collectors.toMap());
+            // .map(e -> new SimpleEntry<String, String>(e.getKey(),
+            // e.getValue().get(0))).collect(Collectors.toMap());
             Map<String, Object> tableDescription = this._mongo.getData(database, table, params);
             Map<String, Object> dataMap = Collections.singletonMap("data", tableDescription);
             ctx_.json(dataMap);
@@ -196,15 +212,16 @@ public class DataApeServer {
     }
 
     // public static class JsonNullMapper implements JsonMapper {
-    //     @Override
-    //     public String toJsonString(@NotNull Object obj) {
-    //         StdSerializerProvider sp = new StdSerializerProvider();
-    //         return gson.toJson(obj);
-    //     }
-    //     @Override
-    //     public <T> T fromJsonString(@NotNull String json, @NotNull Class<T> targetClass) {
-    //         return gson.fromJson(json, targetClass);
-    //     }
+    // @Override
+    // public String toJsonString(@NotNull Object obj) {
+    // StdSerializerProvider sp = new StdSerializerProvider();
+    // return gson.toJson(obj);
+    // }
+    // @Override
+    // public <T> T fromJsonString(@NotNull String json, @NotNull Class<T>
+    // targetClass) {
+    // return gson.fromJson(json, targetClass);
+    // }
     // }
 
 }

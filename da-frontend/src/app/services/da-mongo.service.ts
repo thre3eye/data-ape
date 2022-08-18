@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Message } from '@angular/compiler/src/i18n/i18n_ast';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, catchError, finalize, ignoreElements, map, Observable, of, Subject, take } from 'rxjs';
+import { BehaviorSubject, catchError, finalize, map, Observable, of, Subject, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ConfigData, DaConfigService } from './da-config.service';
 import { DaLogService } from './da-log.service';
@@ -14,7 +14,7 @@ export class DaMongoService {
 
   private _data?: TableDescription;
   public data = new Subject<TableDescription>();
-  public isLoading = new BehaviorSubject<boolean>(true);
+  public isLoading = new BehaviorSubject<boolean>(false);
 
   private displayMap: Map<string, string[]> = new Map();
   private queryMap: Map<string, QueryParameters> = new Map();
@@ -80,10 +80,16 @@ export class DaMongoService {
 
   public pocessWebQuery(query_: any): void {
     if (query_) {
+      let db = query_['db'];
       let table = query_['table'];
       if (table) {
         this.log.log(`web query table: ${table}`);
-        this.getDatabase().pipe(take(1)).subscribe(db_ => {
+        this.config.getConfig(db).pipe(take(1)).subscribe(cfg_ => {
+          if (cfg_ != null) {
+            this.initializeConfig(db, cfg_);
+          }
+          //     });
+          //    this.getDatabase().pipe(take(1)).subscribe(db_ => {
           let params = this.getQueryParameters(table);
           let page = query_['page'];
           if (page) {
@@ -107,10 +113,32 @@ export class DaMongoService {
           if (highlight) {
             params.highlight = highlight;
           }
-          this.getTableData(db_.dbName, table, params);
+          this.getTableData(db, table, params);
+          //          this.getTableData(db_.dbName, table, params);
         });
       }
     }
+  }
+
+  public connect(cstr_: string): Observable<DatabaseDescription | null> {
+    this.isLoading.next(true);
+    let body = { 'cstr': cstr_ };
+    let httpParams = new HttpParams();
+    httpParams = httpParams.set('cstr', cstr_);
+    let url = `${environment.server}connect`;
+    let response = this.http.post<DatabaseDescription>(url, body, { params: httpParams }).pipe(
+      map(resp_ => {
+        this.msg.publish({ level: MessageLevel.Default, text: `Tables loaded` });
+        return resp_;
+      }),
+      catchError(err_ => {
+        this.log.log(err_);
+        this.msg.publish({ level: MessageLevel.Error, text: 'Error getting Tables' });
+        return of(null);
+      }),
+      finalize(() => this.isLoading.next(false))
+    );
+    return response;
   }
 
   public getDatabase(): Observable<DatabaseDescription> {
@@ -124,18 +152,18 @@ export class DaMongoService {
     return response;
   }
 
-  public getTables(db_: string): Observable<Table[]> {
+  public getTables(db_: string): Observable<DatabaseDescription | null> {
     this.isLoading.next(true);
     let url = `${environment.server}tables/${db_}`;
-    let response = this.http.get<{ 'tables': Table[], 'decimaldigits': number }>(url).pipe(
+    let response = this.http.get<DatabaseDescription>(url).pipe(
       map(resp_ => {
         this.msg.publish({ level: MessageLevel.Default, text: `Tables loaded` });
-        return resp_.tables;
+        return resp_;
       }),
       catchError(err_ => {
         this.log.log(err_);
         this.msg.publish({ level: MessageLevel.Error, text: 'Error getting Tables' });
-        return of([]);
+        return of(null);
       }),
       finalize(() => this.isLoading.next(false))
     );
@@ -310,6 +338,8 @@ export class QueryParameters {
 
 export interface DatabaseDescription {
   dbName: string;
+  tables: Table[];
+  decimaldigits: number;
 }
 
 export interface Table {

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { DaBusService } from '../services/da-bus.service';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, Table } from '../services/da-mongo.service';
 
@@ -11,12 +12,15 @@ export class DaSidebarComponent implements OnInit {
 
   public db?: string;
   public tables: Table[] = [];
-  public isLoading = true;
+  public isLoading = false;
+
+  private isTopVisible = true;
 
   public selectedTable?: string;
 
   constructor(
     private log: DaLogService,
+    private bus: DaBusService,
     private mongoDb: DaMongoService
   ) {
     this.mongoDb.data.subscribe(data_ => {
@@ -24,6 +28,17 @@ export class DaSidebarComponent implements OnInit {
         return;
       this.selectedTable = data_.table;
     });
+    this.bus.db.subscribe(db_ => {
+      if (db_ == null)
+        return;
+      this.db = db_.dbName;
+      this.tables = db_.tables;
+    })
+  }
+
+  public connect(): void {
+    this.isTopVisible = !this.isTopVisible;
+    this.bus.isTopVisible.next(this.isTopVisible);
   }
 
   public select(table_: Table): void {
@@ -37,18 +52,19 @@ export class DaSidebarComponent implements OnInit {
   public refresh(): void {
     if (!this.db)
       return;
-    this.mongoDb.getTables(this.db).subscribe(tables_ => {
-      if (!tables_)
+    this.mongoDb.getTables(this.db).subscribe(db_ => {
+      if (db_ == null || db_.tables == null)
         return;
-      this.tables = tables_;
+      this.db = db_.dbName;
+      this.tables = db_.tables;
     });
   }
 
   ngOnInit(): void {
-    this.mongoDb.getDatabase().subscribe(db_ => {
-      this.db = db_.dbName;
-      this.refresh();
-    });
+    // this.mongoDb.getDatabase().subscribe(db_ => {
+    //   this.db = db_.dbName;
+    //   this.refresh();
+    // });
     this.mongoDb.isLoading.subscribe(val_ => this.isLoading = val_);
   }
 

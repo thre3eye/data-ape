@@ -28,6 +28,7 @@
 			"extensions": [
 				"vscjava.vscode-java-pack",
 				"dbaeumer.vscode-eslint"
+	//			"ms-edgedevtools.vscode-edge-devtools"
 			]
 		}
 	},

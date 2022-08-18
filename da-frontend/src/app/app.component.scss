@@ -6,6 +6,11 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+.top-area {
+    display: block;
+    height: min-content;
+}
+
 .sidebar-area {
     overflow: hidden;
     display: block;

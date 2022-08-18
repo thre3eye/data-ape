@@ -3,6 +3,7 @@
         <div>DB: </div>
         <div class="db">{{db}}</div>
         <div class="refresh" title="Reload tables..." (click)="refresh()">↻</div>
+        <div class="connect" title="Connect..." (click)="connect()">⮃</div>
     </div>
     <div class="tables">
         <div *ngIf="isLoading" class="loader-wrapper">

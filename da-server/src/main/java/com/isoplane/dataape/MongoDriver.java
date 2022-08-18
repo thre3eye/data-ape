@@ -2,6 +2,7 @@ package com.isoplane.dataape;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -63,16 +64,48 @@ public class MongoDriver {
             String pass = config.getString("mongo.pass");
             String connectionStr = config.getString("mongo.cstr");
 
-            user = URLEncoder.encode(user, "UTF-8");
-            pass = URLEncoder.encode(pass, "UTF-8");
-            if (connectionStr.contains("%s")) {
-                connectionStr = String.format(connectionStr, user, pass, dbName);
+            if (StringUtils.isNotBlank(dbName) && StringUtils.isNotBlank(user) && StringUtils.isNotBlank(pass)
+                    && StringUtils.isNotBlank(connectionStr)) {
+                user = URLEncoder.encode(user, "UTF-8");
+                pass = URLEncoder.encode(pass, "UTF-8");
+                if (connectionStr.contains("%s")) {
+                    connectionStr = String.format(connectionStr, user, pass, dbName);
+                }
+                MongoClientURI uri = new MongoClientURI(connectionStr);
+                this._mongo = new MongoClient(uri);
+                log.info(String.format("Pre-defined DB connection [%s]", dbName));
+            } else {
+                log.info(String.format("No pre-defined DB connection"));
             }
-            MongoClientURI uri = new MongoClientURI(connectionStr);
-            this._mongo = new MongoClient(uri);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    // Expects format:
+    // mongodb://<user>:<password>@<address>/<database>
+    // ?retryWrites=false (or other options)
+    public DbDescription connect(String cstr_) {
+        var startIdx = cstr_.indexOf("://");
+        var endIdx = cstr_.lastIndexOf("@");
+        var tokenStr = cstr_.substring(startIdx + "://".length(), endIdx);
+        var tokens = tokenStr.split(":", 2);
+        var uname = URLEncoder.encode(tokens[0], Charset.defaultCharset());
+        var pass = URLEncoder.encode(tokens[1], Charset.defaultCharset());
+        var cstr = cstr_.replace(tokens[0], uname).replace(tokens[1], pass);
+
+        startIdx = cstr_.lastIndexOf("/");
+        endIdx = cstr_.lastIndexOf("?");
+        var dbName = endIdx < 0 ? cstr_.substring(startIdx + 1) : cstr_.substring(startIdx + 1, endIdx);
+
+        var uri = new MongoClientURI(cstr);
+        this._mongo = new MongoClient(uri);
+        var dbn = this._mongo.listDatabaseNames();
+        var dbNames = dbn.into(new ArrayList<>());
+        log.info(String.format("Connected [%s]: %s", dbName, dbNames));
+
+        var db = this.getTables(dbName);
+        return db;
     }
 
     public boolean update(String database_, String table_, String json_) {
@@ -151,7 +184,7 @@ public class MongoDriver {
         return dbName;
     }
 
-    public Collection<Table> getTables(String database_, String... tables_) {
+    public DbDescription getTables(String database_, String... tables_) {
         var start = LocalDateTime.now();
         Set<String> tableNames = new TreeSet<>();
         Map<String, Table> tableMap = new TreeMap<>();
@@ -173,16 +206,20 @@ public class MongoDriver {
             tableMap.put(tableName, table);
             table.name = tableName;
             var fieldMap = getFieldInfo(database_, tableName);
-            //     var fields = fieldMap.keySet().toArray(new String[0]);
-            //     var types = fieldMap.values().toArray(new String[0]);
-            //      table.fields = fields;
-            //      table.types = types;
+            // var fields = fieldMap.keySet().toArray(new String[0]);
+            // var types = fieldMap.values().toArray(new String[0]);
+            // table.fields = fields;
+            // table.types = types;
             table.fieldMap = fieldMap;
         }
         var end = LocalDateTime.now();
         var duration = Duration.between(start, end);
         log.debug(String.format("getTables duration: %s", duration));
-        return tableMap.values();
+
+        var db = new DbDescription();
+        db.name = database_;
+        db.tables = tableMap.values();
+        return db;
     }
 
     private Map<String, String> getFieldInfo(String database_, String tableName_) {
@@ -220,7 +257,7 @@ public class MongoDriver {
             fieldMap.put(field, type);
         }
         // if ("trade_ledger".equals(tableName_)) {
-        //     var i = 1;
+        // var i = 1;
         // }
         return fieldMap;
     }
@@ -345,7 +382,8 @@ public class MongoDriver {
         }
         selectStr = StringUtils.isBlank(selectStr) ? "" : String.format(", 'filter':%s", selectStr).replace('"', '\'');
         sortStr = StringUtils.isBlank(sortStr) ? "" : String.format(", 'sort':%s", sortStr).replace('"', '\'');
-        var queryStr = String.format("{%s %s}", table_, selectStr, sortStr); // NOTE: We only want to allow find queries # find':'%s' 
+        var queryStr = String.format("{%s %s}", table_, selectStr, sortStr); // NOTE: We only want to allow find queries
+                                                                             // # find':'%s'
         tableDescription.put("query", queryStr);
         tableDescription.put("dataSize", queryCount > 0 ? count : 0);
         return tableDescription;
@@ -354,6 +392,11 @@ public class MongoDriver {
     public static class Table {
         public String name;
         public Map<String, String> fieldMap;
+    }
+
+    public static class DbDescription {
+        public String name;
+        public Collection<Table> tables;
     }
 
 }

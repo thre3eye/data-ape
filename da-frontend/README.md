@@ -28,7 +28,7 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 
 ## Package
 
- ng build --configuration production --progress --verbose
+ ng build --configuration production --progress --verbose  (--watch=true)
 
  ## Run
 
