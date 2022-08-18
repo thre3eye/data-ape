@@ -13,7 +13,7 @@ export class DaMsgService {
 
   public publish(msg_: MessageData): void {
     this.messages.next(msg_);
-    setTimeout(() => this.messages.next({ text: '', level: MessageLevel.Default }), 1000);
+    setTimeout(() => this.messages.next({ text: '', level: MessageLevel.Default }), 5000);
   }
 }
 

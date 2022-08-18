@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { take } from 'rxjs';
 import { DaBusService } from '../services/da-bus.service';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, Table } from '../services/da-mongo.service';
@@ -52,12 +53,14 @@ export class DaSidebarComponent implements OnInit {
   public refresh(): void {
     if (!this.db)
       return;
-    this.mongoDb.getTables(this.db).subscribe(db_ => {
-      if (db_ == null || db_.tables == null)
-        return;
-      this.db = db_.dbName;
-      this.tables = db_.tables;
-    });
+    this.mongoDb.getTables(this.db);//.subscribe();//.pipe(take(1));//.subscribe();
+    // this.mongoDb.getTables(this.db).subscribe(db_ => {
+    //   this.bus.db.next(db_);
+    //   // if (db_ == null || db_.tables == null)
+    //   //   return;
+    //   // this.db = db_.dbName;
+    //   // this.tables = db_.tables;
+    // });
   }
 
   ngOnInit(): void {
@@ -65,7 +68,9 @@ export class DaSidebarComponent implements OnInit {
     //   this.db = db_.dbName;
     //   this.refresh();
     // });
-    this.mongoDb.isLoading.subscribe(val_ => this.isLoading = val_);
+    this.mongoDb.isLoading.subscribe(
+      val_ => this.isLoading = val_
+    );
   }
 
 }

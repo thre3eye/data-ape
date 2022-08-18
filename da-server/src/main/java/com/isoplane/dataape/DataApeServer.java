@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.MissingFormatArgumentException;
 import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.isoplane.dataape.MongoDriver.MissingDbConnectionException;
 
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
@@ -102,7 +104,8 @@ public class DataApeServer {
                     : (String) _jsonMapper.readValue(json, HashMap.class).get("cstr");
             var db = this._mongo.connect(cstr);
             var decimalDigits = _config.config().getInteger("ui.decimaldigits", 2);
-            Map<String, Object> tableMap = Map.of("dbName", db.name, "tables", db.tables, "decimaldigits", decimalDigits);
+            Map<String, Object> tableMap = Map.of("dbName", db.name, "tables", db.tables, "decimaldigits",
+                    decimalDigits);
             ctx_.json(tableMap);
         });
         _server.get("/database", ctx_ -> {
@@ -114,7 +117,7 @@ public class DataApeServer {
             String database = ctx_.pathParam("database");
             var db = this._mongo.getTables(database);
             var decimalDigits = _config.config().getInteger("ui.decimaldigits", 2);
-            Map<String, Object> tableMap = Map.of("name", db.name, "tables", db.tables, "decimaldigits", decimalDigits);
+            var tableMap = Map.of("dbName", db.name, "tables", db.tables, "decimaldigits", decimalDigits);
             ctx_.json(tableMap);
         });
         _server.get("/data/{database}/{table}", ctx_ -> {
@@ -142,6 +145,11 @@ public class DataApeServer {
             String id = ctx_.pathParam("id");
             boolean result = this._mongo.delete(database, table, id);
             ctx_.json(Collections.singletonMap("result", result));
+        });
+        _server.exception(MissingDbConnectionException.class, (err_, ctx_) -> {
+            var msgMap = Map.of("error", "DB not initialized");
+            ctx_.status(500);
+            ctx_.json(msgMap);
         });
         _server.start(port);
     }

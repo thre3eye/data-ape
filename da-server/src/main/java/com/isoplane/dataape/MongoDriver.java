@@ -185,6 +185,9 @@ public class MongoDriver {
     }
 
     public DbDescription getTables(String database_, String... tables_) {
+        if (this._mongo == null) {
+            throw new MissingDbConnectionException();
+        }
         var start = LocalDateTime.now();
         Set<String> tableNames = new TreeSet<>();
         Map<String, Table> tableMap = new TreeMap<>();
@@ -264,6 +267,9 @@ public class MongoDriver {
 
     public Map<String, Object> getData(String database_, String table_, Map<String, String> params_)
             throws IOException {
+        if (this._mongo == null) {
+            throw new MissingDbConnectionException();
+        }
         boolean isCount = MapUtils.getBooleanValue(params_, "count_total", true);
         int page = MapUtils.getIntValue(params_, "page", 1);
         int pageSize = MapUtils.getIntValue(params_, "page_size", 50);
@@ -397,6 +403,10 @@ public class MongoDriver {
     public static class DbDescription {
         public String name;
         public Collection<Table> tables;
+    }
+
+    public static class MissingDbConnectionException extends RuntimeException {
+
     }
 
 }

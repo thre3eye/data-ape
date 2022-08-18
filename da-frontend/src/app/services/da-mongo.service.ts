@@ -1,8 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Message } from '@angular/compiler/src/i18n/i18n_ast';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, catchError, finalize, map, Observable, of, Subject, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { DaBusService } from './da-bus.service';
 import { ConfigData, DaConfigService } from './da-config.service';
 import { DaLogService } from './da-log.service';
 import { DaMsgService, MessageLevel } from './da-msg.service';
@@ -23,6 +23,7 @@ export class DaMongoService {
   constructor(
     private http: HttpClient,
     private log: DaLogService,
+    private bus: DaBusService,
     private msg: DaMsgService,
     private config: DaConfigService) {
   }
@@ -113,7 +114,9 @@ export class DaMongoService {
           if (highlight) {
             params.highlight = highlight;
           }
+          this.getTables(db);
           this.getTableData(db, table, params);
+          this.bus.isTopVisible.next(false);
           //          this.getTableData(db_.dbName, table, params);
         });
       }
@@ -128,12 +131,12 @@ export class DaMongoService {
     let url = `${environment.server}connect`;
     let response = this.http.post<DatabaseDescription>(url, body, { params: httpParams }).pipe(
       map(resp_ => {
-        this.msg.publish({ level: MessageLevel.Default, text: `Tables loaded` });
+        this.msg.publish({ level: MessageLevel.Default, text: `Connected '${resp_.dbName}'` });
         return resp_;
       }),
       catchError(err_ => {
         this.log.log(err_);
-        this.msg.publish({ level: MessageLevel.Error, text: 'Error getting Tables' });
+        this.msg.publish({ level: MessageLevel.Error, text: `Error Connecting` });
         return of(null);
       }),
       finalize(() => this.isLoading.next(false))
@@ -152,22 +155,27 @@ export class DaMongoService {
     return response;
   }
 
-  public getTables(db_: string): Observable<DatabaseDescription | null> {
+  // public getTables(db_: string): Observable<DatabaseDescription | null> {
+  public getTables(db_: string): void {
     this.isLoading.next(true);
     let url = `${environment.server}tables/${db_}`;
     let response = this.http.get<DatabaseDescription>(url).pipe(
       map(resp_ => {
         this.msg.publish({ level: MessageLevel.Default, text: `Tables loaded` });
+        this.bus.db.next(resp_);
         return resp_;
       }),
       catchError(err_ => {
         this.log.log(err_);
-        this.msg.publish({ level: MessageLevel.Error, text: 'Error getting Tables' });
+        var msg = err_?.error?.error != null ? err_.error.error : 'Error getting Tables';
+        this.msg.publish({ level: MessageLevel.Error, text: msg });
         return of(null);
       }),
-      finalize(() => this.isLoading.next(false))
-    );
-    return response;
+      finalize(
+        () => this.isLoading.next(false)
+      )
+    ).subscribe();
+    //   return response;
   }
 
   public getDecimalDigits(): number {
@@ -243,7 +251,8 @@ export class DaMongoService {
       }),
       catchError(err_ => {
         this.log.log(err_);
-        this.msg.publish({ level: MessageLevel.Error, text: 'Error getting Data' });
+        var msg = err_?.error?.error != null ? err_.error.error : 'Error getting Data';
+        this.msg.publish({ level: MessageLevel.Error, text: msg });
         return of([]);
       }),
       finalize(() => { if (!isSkipStatus) { this.isLoading.next(false) }; })
