@@ -8,7 +8,7 @@ Existing tools didn't cut it for our use case of quickly reviewing database cont
 
 This tool is mostly targeting no-sql databases such as (for now only) MongoDB with support for simple filtering and sorting and primitive data types. It should be easy to extend to SQL databases, CSV files or wherever data is stored as long as it can be represented in tabular text. It's great for time series.
 
-Unterlying code is Java for the server and TypeScript/Angular (no Material) for the web GUI - since these technologies are currently being used in our main projects. We tried to keep it simple with minimal dependencies (i.e. Angular, but not Angular Material, no Spring, etc).
+Unterlying code is Java for the server and TypeScript/Angular (no Material) for the web GUI - since these technologies are currently being used in our main projects. We tried to keep it simple with minimal dependencies (i.e. Angular, but not Angular Material, no Spring, etc). This project now supports [VS Code Development Containers](https://code.visualstudio.com/docs/remote/containers).
 
 Please note: This tool may expose your data due to improper configuration or bugs. Use at your own risk!
 
