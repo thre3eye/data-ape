@@ -19,18 +19,18 @@
 
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <commons-collections4.version>4.4</commons-collections4.version>
-    <commons-configuration2.version>2.7</commons-configuration2.version>
+    <commons-configuration2.version>2.8.0</commons-configuration2.version>
     <gson.version>2.8.9</gson.version>
-    <jackson-databind.version>2.13.1</jackson-databind.version>
-    <javalin.version>4.3.0</javalin.version>
+    <jackson-databind.version>2.13.3</jackson-databind.version>
+    <javalin.version>4.6.4</javalin.version>
     <logback.version>1.2.6</logback.version>
-    <mongo-java-driver.version>3.12.10</mongo-java-driver.version>
+    <mongo-java-driver.version>3.12.11</mongo-java-driver.version>
 
     <!-- test -->
-    <junit-jupiter-engine.version>5.8.2</junit-jupiter-engine.version> <!-- 5.8.1 -->
+    <junit-jupiter-engine.version>5.9.0</junit-jupiter-engine.version> <!-- 5.8.1 -->
 
     <!-- plugins -->
-    <jib-maven-plugin.version>3.1.4</jib-maven-plugin.version>
+    <jib-maven-plugin.version>3.2.1</jib-maven-plugin.version> <!-- 3.1.4 -->
     <maven-assembly-plugin.version>3.2.0</maven-assembly-plugin.version>
   </properties>
 
@@ -191,7 +191,7 @@
             </jvmFlags>
             <mainClass>com.isoplane.dataape.DataApeServer</mainClass>
             <args>
-              <arg>/docker-data/data-ape/config/NOCHECKIN_da.properties,/docker-data/data-ape/config/da.properties</arg>
+              <arg>/docker-data/data-ape/config/da.properties</arg>
             </args>
             <ports>
               <port>4100</port>
