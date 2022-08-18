@@ -6,15 +6,15 @@ An optionally containerized database GUI for your browser.
 ### What's the point?
 Existing tools didn't cut it for our use case of quickly reviewing database content for development and troubleshooting (i.e. processes that are either/or slow, clunky, expensive, annoy with licensing or use up too many resources on a Dev VM). So we spent a bit of time to write a web browser based tool and deploy it into an always-on Docker container. Now it even runs on the smarphone - as long as it's on the same network (we advise against running this tool on public/insecure environments!)
 
-This tool is mostly aimed at no-sql databases such as (for now only) MongoDB with support for simple filtering and sorting and primitive data types. It should be easy to extend to SQL databases, CSV files or wherever data is stored as long as it can be represented in tabular text. It's great for time series.
+This tool is mostly targeting no-sql databases such as (for now only) MongoDB with support for simple filtering and sorting and primitive data types. It should be easy to extend to SQL databases, CSV files or wherever data is stored as long as it can be represented in tabular text. It's great for time series.
 
-Unterlying code is Java for the server and TypeScript/Angular (no Material) for the web GUI - since these technologies are currently being used in our main projects.
+Unterlying code is Java for the server and TypeScript/Angular (no Material) for the web GUI - since these technologies are currently being used in our main projects. We tried to keep it simple with minimal dependencies (i.e. Angular, but not Angular Material, no Spring, etc). This project now supports [VS Code Development Containers](https://code.visualstudio.com/docs/remote/containers).
 
-This tool may expose your data due to improper configuration or bugs. Use at your own risk!
+Please note: This tool may expose your data due to improper configuration or bugs. Use at your own risk!
 
 ### Instructions
 
-For now this only works with MongoDB and one database defined in the properties:
+For now this only works with MongoDB.
 
 1. Build GUI:
    - cd da-frontend
@@ -26,9 +26,8 @@ For now this only works with MongoDB and one database defined in the properties:
 
 #### To run on system:
 
-4. Create a NOCHECKIN_da.properties file populated with the commented out 'mongo.*' properties (from da-server/da.properties) in the data-ape dir
 4. cd to da-server
-6. Run: java -Dlogback.configurationFile=./da-logback.xml -jar ./target/da-server-1.0.0-SNAPSHOT-jar-with-dependencies.jar ../NOCHECKIN_da.properties,./da.properties
+6. Run: java -Dlogback.configurationFile=./da-logback.xml -jar ./target/da-server-1.0.0-SNAPSHOT-jar-with-dependencies.jar ./da.properties
 
 #### To run in Docker:
 
@@ -40,8 +39,7 @@ For now this only works with MongoDB and one database defined in the properties:
    - mkdir /var/lib/docker/volumes/data-ape/_data/web_config
 6. Prepare config files:
    - Copy da.properties from da-server into the new config dir
-   - Create a NOCHECKIN_da.properties file populated with the commented out 'mongo.*' properties (from da-server/da.properties) in the new config dir
-   - Create a da-config.json file in web_config and populate it as per example (also see Tips below)
+   - Optionally create da-config.<db-name>.json files in web_config and populate it as per example (also see Tips below)
 7. Create a docker container:
    - docker run -d --name data-ape --restart=always -p 888:4100 --mount type=volume,source=data-ape,target=/docker-data/data-ape da-server:1.0.0-SNAPSHOT
 
@@ -58,7 +56,7 @@ Missing features can be added if there is interest and related submissions are w
    - Export result as CSV to Clipboard
    - Order columns with drag & drop. Optionally define default order per db/table in config file
    - Hide/View columns (right-click). Optionally define default hide/view columns per db/table in config file
-   - Session persistenve of select/sort/paging/highlight per table to conveniently switch between views
+   - Session persistence of select/sort/paging/highlight per table to conveniently switch between views
    - Highlight related cells on click (aid tracing in time-series etc)
 
 ### Roadmap:
@@ -67,7 +65,7 @@ Missing features can be added if there is interest and related submissions are w
    - Deal with non-primitive and nested data columns
    - Create dockerfile for build
    - Persist and GUI-edit configuration
-   - Add secrurity/login (not required for now and may add complexity to deployment, maintenance and usage)
+   - Multi-user support. For now the server only maintains one share DB connection for all connected browsers (A security concern if unauthorized users have access to the network. This needs to be addressed, but has low priority for our current use case as dev-db UI)
 
 ### Tips
    - To easily define order/hide/view columns in the config file, first arrange the view in the GUI, then export to CSV and copy the headers into the config columns.
