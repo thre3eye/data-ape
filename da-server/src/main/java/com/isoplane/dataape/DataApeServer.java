@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.isoplane.dataape.MongoDriver.DADatabaseException;
+import com.isoplane.dataape.MongoDriver.DADatabaseConnectionException;
 
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
@@ -89,11 +89,12 @@ public class DataApeServer {
                 var sessionId = session.getId();
                 if (session.isNew()) {
                     log.info(String.format("New session"));
-                    session.setMaxInactiveInterval(600);
+                    var timeout = config.getInt("session.timeout.interval", 900);
+                    session.setMaxInactiveInterval(timeout);
                 }
                 var ival = session.getMaxInactiveInterval();
                 var last = session.getLastAccessedTime();
-                var timeout = last + 1000 * ival;
+                var timeout = last + (1000 * ival);
                 this._mongo.updateSession(sessionId, timeout);
                 if (log.isDebugEnabled()) {
                     log.debug(String.format("Request method : %s", method));
@@ -158,9 +159,9 @@ public class DataApeServer {
             boolean result = this._mongo.delete(sessionId, database, table, id);
             ctx_.json(Collections.singletonMap("result", result));
         });
-        _server.exception(DADatabaseException.class, (err_, ctx_) -> {
+        _server.exception(DADatabaseConnectionException.class, (err_, ctx_) -> {
             var msg = err_.getMessage();
-            var msgMap = Map.of("error", StringUtils.isBlank(msg) ? "DB Error" : msg);
+            var msgMap = Map.of("msg", StringUtils.isBlank(msg) ? "DB Error" : msg, "id", -1);
             ctx_.status(500);
             ctx_.json(msgMap);
         });

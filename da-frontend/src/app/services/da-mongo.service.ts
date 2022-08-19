@@ -89,8 +89,6 @@ export class DaMongoService {
           if (cfg_ != null) {
             this.initializeConfig(db, cfg_);
           }
-          //     });
-          //    this.getDatabase().pipe(take(1)).subscribe(db_ => {
           let params = this.getQueryParameters(table);
           let page = query_['page'];
           if (page) {
@@ -117,7 +115,6 @@ export class DaMongoService {
           this.getTables(db);
           this.getTableData(db, table, params);
           this.bus.isTopVisible.next(false);
-          //          this.getTableData(db_.dbName, table, params);
         });
       }
     }
@@ -136,6 +133,7 @@ export class DaMongoService {
       }),
       catchError(err_ => {
         this.log.log(err_);
+        this.bus.isTopVisible.next(true);
         this.msg.publish({ level: MessageLevel.Error, text: `Error Connecting` });
         return of(null);
       }),
@@ -144,38 +142,28 @@ export class DaMongoService {
     return response;
   }
 
-  // public getDatabase(): Observable<DatabaseDescription> {
-  //   let url = `${environment.server}database`;
-  //   let response = this.http.get<DatabaseDescription>(url);
-  //   response.subscribe(db_ => {
-  //     this.config.config.subscribe(cfg_ => {
-  //       this.initializeConfig(db_.dbName, cfg_);
-  //     });
-  //   })
-  //   return response;
-  // }
-
-  // public getTables(db_: string): Observable<DatabaseDescription | null> {
-  public getTables(db_: string): void {
+  public getTables(db_?: string): void {
+    if (db_ == null) {
+      this.msg.messages.next({ level: MessageLevel.Error, text: 'DB not connected' });
+      this.bus.isTopVisible.next(true);
+      return;
+    }
     this.isLoading.next(true);
     let url = `${environment.server}tables/${db_}`;
-    let response = this.http.get<DatabaseDescription>(url).pipe(
+    this.http.get<DatabaseDescription>(url).pipe(
       map(resp_ => {
         this.msg.publish({ level: MessageLevel.Default, text: `Tables loaded` });
         this.bus.db.next(resp_);
         return resp_;
       }),
       catchError(err_ => {
-        this.log.log(err_);
-        var msg = err_?.error?.error != null ? err_.error.error : 'Error getting Tables';
-        this.msg.publish({ level: MessageLevel.Error, text: msg });
+        this.handleError(err_, 'Error getting Tables');
         return of(null);
       }),
       finalize(
         () => this.isLoading.next(false)
       )
     ).subscribe();
-    //   return response;
   }
 
   public getDecimalDigits(): number {
@@ -319,6 +307,22 @@ export class DaMongoService {
     }
     this._data.setActiveColumns(cols);
     this.displayMap.set(this._data.table, cols);
+  }
+
+  private handleError(err_: any, defaultMsg_?: string): void {
+    this.log.log(err_);
+    var msg = defaultMsg_;
+    if (err_?.error != null) {
+      if (err_.error.msg != null) {
+        msg = err_.error.msg;
+      }
+      if (err_.error.id == -1) {
+        this.bus.isTopVisible.next(true);
+      }
+    }
+    if (msg != null) {
+      this.msg.publish({ level: MessageLevel.Error, text: msg });
+    }
   }
 
 }

@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,9 +16,21 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.lang3.StringUtils;
+import org.bson.BsonDocument;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.isoplane.dataape.DataApeServer.ConfigUtil;
 import com.isoplane.dataape.JsonHelper.SelectParam;
@@ -33,24 +46,17 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.result.UpdateResult;
 
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.lang3.StringUtils;
-import org.bson.BsonDocument;
-import org.bson.Document;
-import org.bson.conversions.Bson;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class MongoDriver {
 
     static final Logger log = LoggerFactory.getLogger(MongoDriver.class);
 
     private ConfigUtil _config;
-    private Map<String, Long> _sessionTimeoutMap = new HashMap<>();
-    private Map<String, MongoClient> _sessionClientMap = new HashMap<>();
+    private Map<String, Long> _sessionTimeoutMap = Collections.synchronizedMap(new HashMap<>());
+    private Map<String, MongoClient> _sessionClientMap = Collections.synchronizedMap(new HashMap<>());
 
     private Map<String, Map<String, Table>> _tableMap = new HashMap<>();
+
+    private final ScheduledExecutorService _scheduler = Executors.newScheduledThreadPool(1);
 
     public MongoDriver(ConfigUtil config_) {
         this._config = config_;
@@ -59,7 +65,8 @@ public class MongoDriver {
 
     private void init() {
         try {
-
+            var period = this._config.config().getInt("session.cleanup.interval");
+            this._scheduler.scheduleAtFixedRate(new SessionCleaner(), period, period, TimeUnit.SECONDS);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -83,7 +90,9 @@ public class MongoDriver {
 
         var uri = new MongoClientURI(cstr);
         var mongo = new MongoClient(uri);
-        this._sessionClientMap.put(sessionId_, mongo);
+        synchronized (this._sessionTimeoutMap) {
+            this._sessionClientMap.put(sessionId_, mongo);
+        }
 
         var dbn = mongo.listDatabaseNames();
         var dbNames = dbn.into(new ArrayList<>());
@@ -102,10 +111,7 @@ public class MongoDriver {
     }
 
     private boolean updateDocument(String sessionId_, String database_, String table_, Document doc_) {
-        var mongo = this._sessionClientMap.get(sessionId_);
-        if (mongo == null) {
-            throw new DADatabaseException("DB not initialized");
-        }
+        var mongo = getMongoClient(sessionId_);
         String id = doc_ != null ? (String) doc_.remove("_id") : null;
         if (StringUtils.isBlank(id)) {
             return false;
@@ -148,10 +154,7 @@ public class MongoDriver {
     }
 
     public boolean delete(String sessionId_, String database_, String table_, String id_) {
-        var mongo = this._sessionClientMap.get(sessionId_);
-        if (mongo == null) {
-            throw new DADatabaseException("DB not initialized");
-        }
+        var mongo = getMongoClient(sessionId_);
         if (StringUtils.isBlank(id_)) {
             return false;
         }
@@ -174,10 +177,8 @@ public class MongoDriver {
     }
 
     public DbDescription getTables(String sessionId_, String database_, String... tables_) {
-        var mongo = this._sessionClientMap.get(sessionId_);
-        if (mongo == null) {
-            throw new DADatabaseException("DB not initialized");
-        }
+        var mongo = getMongoClient(sessionId_);
+
         var start = LocalDateTime.now();
         Set<String> tableNames = new TreeSet<>();
         Map<String, Table> tableMap = new TreeMap<>();
@@ -212,10 +213,7 @@ public class MongoDriver {
     }
 
     private Map<String, String> getFieldInfo(String sessionId_, String database_, String tableName_) {
-        var mongo = this._sessionClientMap.get(sessionId_);
-        if (mongo == null) {
-            throw new DADatabaseException("DB not initialized");
-        }
+        var mongo = getMongoClient(sessionId_);
         MongoDatabase db = mongo.getDatabase(database_);
         MongoCollection<Document> collection = db.getCollection(tableName_);
 
@@ -254,10 +252,7 @@ public class MongoDriver {
 
     public Map<String, Object> getData(String sessionId_, String database_, String table_, Map<String, String> params_)
             throws IOException {
-        var mongo = this._sessionClientMap.get(sessionId_);
-        if (mongo == null) {
-            throw new DADatabaseException("DB not initialized");
-        }
+        var mongo = getMongoClient(sessionId_);
         boolean isCount = MapUtils.getBooleanValue(params_, "count_total", true);
         int page = MapUtils.getIntValue(params_, "page", 1);
         int pageSize = MapUtils.getIntValue(params_, "page_size", 50);
@@ -383,6 +378,39 @@ public class MongoDriver {
         return tableDescription;
     }
 
+    private MongoClient getMongoClient(String sessionId_) {
+        synchronized (this._sessionTimeoutMap) {
+            var mongo = this._sessionClientMap.get(sessionId_);
+            if (mongo == null) {
+                throw new DADatabaseConnectionException("DB not connected");
+            }
+            return mongo;
+        }
+    }
+
+    private class SessionCleaner implements Runnable {
+
+        @Override
+        public void run() {
+            var cutoff = System.currentTimeMillis();
+            var N = MongoDriver.this._sessionTimeoutMap.size();
+            var n = 0;
+            synchronized (MongoDriver.this._sessionTimeoutMap) {
+                var i = MongoDriver.this._sessionTimeoutMap.entrySet().iterator();
+                while (i.hasNext()) {
+                    var entry = i.next();
+                    if (entry.getValue() < cutoff) {
+                        MongoDriver.this._sessionClientMap.remove(entry.getKey());
+                        i.remove();
+                        n++;
+                    }
+                }
+            }
+            log.debug(String.format("Expired [%d/%d] sessions", n, N));
+        }
+
+    }
+
     public static class Table {
         public String name;
         public Map<String, String> fieldMap;
@@ -393,13 +421,13 @@ public class MongoDriver {
         public Collection<Table> tables;
     }
 
-    public static class DADatabaseException extends RuntimeException {
+    public static class DADatabaseConnectionException extends RuntimeException {
 
-        public DADatabaseException() {
+        public DADatabaseConnectionException() {
             super();
         }
 
-        public DADatabaseException(String msg_) {
+        public DADatabaseConnectionException(String msg_) {
             super(msg_);
         }
     }
