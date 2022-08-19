@@ -4,11 +4,11 @@ An optionally containerized database GUI for your browser.
 ![plot](./data-ape.png)
 
 ### What's the point?
-Existing tools didn't cut it for our use case of quickly reviewing database content for development and troubleshooting (i.e. processes that are either/or slow, clunky, expensive, annoy with licensing or use up too many resources on a Dev VM). So we spent a bit of time to write a web browser based tool and deploy it into an always-on Docker container. Now it even runs on the smarphone - as long as it's on the same network (we advise against running this tool on public/insecure environments!)
+Existing tools didn't cut it for our use case of quickly reviewing database content for development and troubleshooting (i.e. processes that are either/or slow, clunky, expensive, annoy with licensing or use up too many resources on a Dev VM). So we spent a bit of time to write a web browser based tool and deploy it into an always-on Docker container. Now it even runs on the smartphone - as long as it's on the same network (we advise against running this tool on public/insecure environments!)
 
-This tool is mostly targeting no-sql databases such as (for now only) MongoDB with support for simple filtering and sorting and primitive data types. It should be easy to extend to SQL databases, CSV files or wherever data is stored as long as it can be represented in tabular text. It's great for time series.
+This tool is primarily targeting no-sql databases such as (and for now, only) MongoDB with support for filtering and sorting and primitive data types. It should be easy to extend to SQL databases, CSV files or wherever data is stored as long as it can be represented in tabular text. It's great for time series.
 
-Unterlying code is Java for the server and TypeScript/Angular (no Material) for the web GUI - since these technologies are currently being used in our main projects. We tried to keep it simple with minimal dependencies (i.e. Angular, but not Angular Material, no Spring, etc). This project now supports [VS Code Development Containers](https://code.visualstudio.com/docs/remote/containers).
+Unterlying code is Java for the server and TypeScript/Angular for the web GUI - since these technologies are currently being used in our main projects and skills are readily available. We tried to keep it simple with minimal dependencies (i.e. Angular, but not Angular Material, no Spring, etc). This project supports [VS Code Development Containers](https://code.visualstudio.com/docs/remote/containers).
 
 Please note: This tool may expose your data due to improper configuration or bugs. Use at your own risk!
 
@@ -65,7 +65,7 @@ Missing features can be added if there is interest and related submissions are w
    - Deal with non-primitive and nested data columns
    - Create dockerfile for build
    - Persist and GUI-edit configuration
-   - Multi-user support. For now the server only maintains one share DB connection for all connected browsers (A security concern if unauthorized users have access to the network. This needs to be addressed, but has low priority for our current use case as dev-db UI)
+   - Review security for multi-session, etc.
 
 ### Tips
    - To easily define order/hide/view columns in the config file, first arrange the view in the GUI, then export to CSV and copy the headers into the config columns.
