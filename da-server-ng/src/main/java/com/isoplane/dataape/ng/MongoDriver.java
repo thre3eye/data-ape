@@ -22,14 +22,25 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.configuration2.Configuration;
 import org.bson.BsonDocument;
+import org.bson.BSONException;
 import org.bson.Document;
+import org.bson.json.JsonMode;
+import org.bson.json.JsonParseException;
+import org.bson.json.JsonWriterSettings;
+import org.bson.types.ObjectId;
 
 import com.isoplane.dataape.ng.JsonHelper.ReadQuery;
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoException;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Collation;
+import com.mongodb.client.model.DeleteOptions;
 
 /**
  * Legacy-style MongoDB adapter with one independently owned client per HTTP session.
@@ -73,7 +84,7 @@ public class MongoDriver implements AutoCloseable {
      * A failed reconnect therefore cannot invalidate a working session.
      *
      * @param sessionId session that owns this connection
-     * @param cstr standard, already encoded MongoDB URI
+     * @param cstr MongoDB URI; raw at-signs in the password are also accepted
      * @return initial database description
      */
     public DbDescription connect(String sessionId, String cstr) {
@@ -110,7 +121,7 @@ public class MongoDriver implements AutoCloseable {
         }
         final ConnectionString uri;
         try {
-            uri = new ConnectionString(cstr);
+            uri = new ConnectionString(encodePasswordAtSigns(cstr));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid MongoDB URI");
         }
@@ -124,6 +135,25 @@ public class MongoDriver implements AutoCloseable {
             throw new IllegalArgumentException("MongoDB target is not allowed");
         }
         return uri;
+    }
+
+    private static String encodePasswordAtSigns(String cstr) {
+        int authorityStart = "mongodb://".length();
+        int authorityEnd = cstr.length();
+        for (char delimiter : new char[] { '/', '?', '#' }) {
+            int index = cstr.indexOf(delimiter, authorityStart);
+            if (index >= 0 && index < authorityEnd) {
+                authorityEnd = index;
+            }
+        }
+        // The last authority at-sign separates credentials from hosts; earlier ones belong to the password.
+        int separator = cstr.lastIndexOf('@', authorityEnd - 1);
+        int passwordStart = cstr.indexOf(':', authorityStart);
+        if (passwordStart < 0 || passwordStart >= separator) {
+            return cstr;
+        }
+        String password = cstr.substring(passwordStart + 1, separator);
+        return cstr.substring(0, passwordStart + 1) + password.replace("@", "%40") + cstr.substring(separator);
     }
 
     /**
@@ -249,7 +279,9 @@ public class MongoDriver implements AutoCloseable {
         for (String field : fields.keySet()) {
             List<Object> column = new ArrayList<>(rows.size());
             for (Document row : rows) {
-                column.add(row.get(field));
+                Object value = row.get(field);
+                column.add("_id".equals(field) && value instanceof ObjectId oid
+                        ? Map.of("$oid", oid.toHexString()) : value);
             }
             columns.add(column);
         }
@@ -257,6 +289,193 @@ public class MongoDriver implements AutoCloseable {
     }
 
     record Page(long querySize, int dataSize, List<List<Object>> data) {
+    }
+
+    /**
+     * Reads the complete document as canonical Extended JSON, preserving BSON types
+     * and fields omitted from sampled table metadata when the user edits it.
+     *
+     * @param sessionId session owning the client
+     * @param database database name
+     * @param table collection name
+     * @param id nonempty string or BSON ObjectId document identifier
+     * @return canonical Extended JSON, or null when the document is missing
+     */
+    public String getDocument(String sessionId, String database, String table, Object id) {
+        requireDocumentId(id);
+        Session session = session(sessionId);
+        synchronized (session) {
+            Document document = client(session).getDatabase(database).getCollection(table)
+                    .find(Filters.eq("_id", id)).first();
+            if (document == null) {
+                return null;
+            }
+            String json = document.toJson(JsonWriterSettings.builder().outputMode(JsonMode.EXTENDED).build());
+            var codecs = MongoClientSettings.getDefaultCodecRegistry();
+            if (!document.toBsonDocument(Document.class, codecs).equals(
+                    parseDocument(json).toBsonDocument(Document.class, codecs))) {
+                throw new IllegalArgumentException("This document cannot be represented safely for editing");
+            }
+            return json;
+        }
+    }
+
+    /**
+     * Replaces an existing document only if it still matches the fetched original.
+     * This prevents a stale editor from silently overwriting concurrent changes.
+     *
+     * @param sessionId session owning the client
+     * @param database database name
+     * @param table collection name
+     * @param originalJson original canonical Extended JSON
+     * @param replacementJson edited Extended JSON
+     * @return whether the original document was matched and replaced
+     */
+    public boolean replaceDocument(String sessionId, String database, String table,
+            String originalJson, String replacementJson) {
+        Document original = parseDocument(originalJson);
+        Document replacement = parseDocument(replacementJson);
+        Object id = original.get("_id");
+        requireDocumentId(id);
+        if (!id.equals(replacement.get("_id"))) {
+            throw new IllegalArgumentException("The _id must not be changed");
+        }
+        var unchanged = unchangedDocument(original);
+        Session session = session(sessionId);
+        synchronized (session) {
+            return client(session).getDatabase(database).getCollection(table)
+                    .replaceOne(Filters.and(Filters.eq("_id", id), unchanged), replacement)
+                    .getMatchedCount() == 1;
+        }
+    }
+
+    /**
+     * Archives and deletes a document transactionally by default. An explicit
+     * archive-first mode supports standalone servers but cannot make both writes
+     * atomic; ambiguous outcomes retain the archive for manual verification.
+     *
+     * @param sessionId session owning the client
+     * @param database database name
+     * @param table source collection name
+     * @param id nonempty string or BSON ObjectId document identifier
+     * @return whether a document was deleted and archived
+     */
+    public boolean deleteDocument(String sessionId, String database, String table, Object id) {
+        requireDocumentId(id);
+        Configuration settings = config.get();
+        String prefix = settings.getString("mongo.deleted.prefix", "");
+        String postfix = settings.getString("mongo.deleted.postfix", "");
+        if ((prefix + postfix).isBlank()) {
+            throw new IllegalArgumentException("An archive collection prefix or postfix is required for deletion");
+        }
+        String archive = prefix + table + postfix;
+        if (archive.equals(table)) {
+            throw new IllegalArgumentException("Archive collection must differ from the source");
+        }
+        Session session = session(sessionId);
+        synchronized (session) {
+            MongoClient client = client(session);
+            var db = client.getDatabase(database);
+            String mode = System.getProperty("dataape.delete.mode",
+                    settings.getString("dataape.delete.mode", "transactional"));
+            if ("archive-first".equals(mode)) {
+                var concern = WriteConcern.MAJORITY.withJournal(true);
+                var source = db.getCollection(table).withReadPreference(ReadPreference.primary()).withWriteConcern(concern);
+                var destination = db.getCollection(archive).withReadPreference(ReadPreference.primary())
+                        .withWriteConcern(concern);
+                return archiveThenDelete(source, destination, id);
+            }
+            if (!"transactional".equals(mode)) {
+                throw new IllegalArgumentException("Invalid dataape.delete.mode");
+            }
+            try (var transaction = client.startSession()) {
+                return transaction.withTransaction(() -> {
+                    Document document = db.getCollection(table)
+                            .findOneAndDelete(transaction, Filters.eq("_id", id));
+                    if (document == null) {
+                        return false;
+                    }
+                    db.getCollection(archive).insertOne(transaction, document);
+                    return true;
+                });
+            } catch (MongoException ex) {
+                throw new DAArchiveException();
+            }
+        }
+    }
+
+    /**
+     * Performs the explicitly opted-in standalone workflow. The matching delete
+     * reduces stale-copy races but cannot replace a transaction: independent
+     * writers and MongoDB's BSON comparison semantics still permit races. An
+     * ambiguous delete retains the archive because the source may already be gone.
+     */
+    static boolean archiveThenDelete(MongoCollection<Document> source, MongoCollection<Document> archive, Object id) {
+        Document original = source.find(Filters.eq("_id", id)).first();
+        if (original == null) {
+            return false;
+        }
+        try {
+            archive.insertOne(original);
+        } catch (MongoException ex) {
+            if (ex.getCode() == 11000) {
+                throw new DAArchiveException("Archive already contains this _id; source was not deleted.");
+            }
+            throw new DAArchiveException("Archive write failed or its outcome is unknown; source was not deleted. Verify the archive.");
+        }
+
+        var exact = Filters.and(Filters.eq("_id", id), unchangedDocument(original));
+        var options = new DeleteOptions().collation(Collation.builder().locale("simple").build());
+        final long deleted;
+        try {
+            deleted = source.deleteOne(exact, options).getDeletedCount();
+        } catch (MongoException ex) {
+            throw new DAArchiveException("Delete failed or its outcome is unknown; archive retained. Verify both collections.");
+        }
+        final Document remaining;
+        try {
+            remaining = source.find(Filters.eq("_id", id)).first();
+        } catch (MongoException ex) {
+            throw new DAArchiveException("Could not verify deletion; archive retained. Verify both collections.");
+        }
+        if (deleted == 1) {
+            if (remaining != null) {
+                throw new DAArchiveException("Document exists after deletion; archive retained. Verify both collections.");
+            }
+            return true;
+        }
+        if (remaining == null) {
+            throw new DAArchiveException("Document disappeared without a confirmed deletion; archive retained. Verify both collections.");
+        }
+        try {
+            if (archive.deleteOne(exact, options).getDeletedCount() != 1) {
+                throw new DAArchiveException("Source was not deleted and the archive changed or disappeared. Verify both collections.");
+            }
+        } catch (MongoException ex) {
+            throw new DAArchiveException("Source was not deleted; archive cleanup failed or its outcome is unknown. Verify both collections.");
+        }
+        throw new DAArchiveException("Source changed and was not deleted; temporary archive removed. Refresh and retry.");
+    }
+
+    private static Document unchangedDocument(Document original) {
+        return new Document("$expr", new Document("$eq", List.of("$$ROOT", new Document("$literal", original))));
+    }
+
+    private static Document parseDocument(String json) {
+        if (json == null || json.isBlank()) {
+            throw new IllegalArgumentException("Document JSON is required");
+        }
+        try {
+            return Document.parse(json);
+        } catch (BSONException | JsonParseException | IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid document Extended JSON");
+        }
+    }
+
+    private static void requireDocumentId(Object id) {
+        if (!(id instanceof ObjectId) && (!(id instanceof String text) || text.isBlank())) {
+            throw new IllegalArgumentException("A nonempty string or ObjectId _id is required");
+        }
     }
 
     private static Map<String, Table> tableMap(DbDescription description) {
@@ -370,6 +589,17 @@ public class MongoDriver implements AutoCloseable {
     /** Signals that a session has no usable MongoDB client. */
     public static class DADatabaseConnectionException extends RuntimeException {
         public DADatabaseConnectionException(String message) {
+            super(message);
+        }
+    }
+
+    /** Reports an archive transaction failure without exposing database details. */
+    public static class DAArchiveException extends RuntimeException {
+        public DAArchiveException() {
+            super("Archive transaction failed or its outcome is unknown; refresh and verify");
+        }
+
+        public DAArchiveException(String message) {
             super(message);
         }
     }

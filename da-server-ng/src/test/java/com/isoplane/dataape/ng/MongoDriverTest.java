@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.configuration2.BaseConfiguration;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.ListCollectionNamesIterable;
+import com.mongodb.ConnectionString;
 
 class MongoDriverTest {
     @Test
@@ -61,6 +63,25 @@ class MongoDriverTest {
             assertEquals("example", driver.getTables("b", "example").name);
         }
         verify(second).close();
+    }
+
+    @Test
+    void acceptsRawAtSignsWithoutChangingEncodedPasswordsOrTargetChecks() {
+        var parsed = new AtomicReference<ConnectionString>();
+        try (MongoDriver driver = new MongoDriver(config(), uri -> {
+            parsed.set(uri);
+            return client();
+        })) {
+            driver.updateSession("a", Long.MAX_VALUE);
+            driver.connect("a", "mongodb://user:one@two@three@fixture:27017/example?retryWrites=false");
+            assertEquals("one@two@three", new String(parsed.get().getPassword()));
+            assertEquals(List.of("fixture:27017"), parsed.get().getHosts());
+
+            driver.connect("a", "mongodb://user:one%40two@fixture:27017/example?retryWrites=false");
+            assertEquals("one@two", new String(parsed.get().getPassword()));
+            assertThrows(IllegalArgumentException.class,
+                    () -> driver.connect("a", "mongodb://user:one@two@not-allowed:27017/example"));
+        }
     }
 
     private static BaseConfiguration config() {

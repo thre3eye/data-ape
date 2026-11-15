@@ -30,10 +30,11 @@
     <as-split-area *ngIf="selection" [size]="200">
         <div class="data">
             <div class="close-button">
+                <div *ngIf="canWrite && originalDocument" class="button" title="Save..." (click)="saveDataView()">✔</div>
                 <div class="button" title="Close" (click)="closeDataView()">✖</div>
             </div>
             <!-- <pre>{{selection.data | json}}</pre> -->
-            <textarea [value]="selectionText" readonly></textarea>
+            <textarea [(ngModel)]="selectionText" [readOnly]="!canWrite || !originalDocument"></textarea>
         </div>
     </as-split-area>
 </as-split>
@@ -50,4 +51,5 @@
 <menu #dataCtxMenu id="dataCtxMenu" (mouseleave)="dataCtxMenu.style.display='none'"
     (click)="dataContextMenuClick($event)">
     <menu title="View..." data-action="view"> </menu>
+    <menu *ngIf="canWrite" title="Archive and delete..." data-action="delete"> </menu>
 </menu>

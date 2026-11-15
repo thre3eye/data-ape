@@ -19,8 +19,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.configuration2.BaseConfiguration;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class DataApeServerTest {
     @Test
@@ -99,6 +102,84 @@ class DataApeServerTest {
             assertEquals(400, result.statusCode());
             verify(mongo, never()).connect(anyString(), anyString());
         }
+    }
+
+    @Test
+    void writesRequireEnabledPolicySameOriginAndSessionToken() throws Exception {
+        var config = new BaseConfiguration();
+        config.setProperty("dataape.write.enabled", true);
+        config.setProperty("dataape.write.origin", "http://ape.test");
+        MongoDriver mongo = mock(MongoDriver.class);
+        var db = new MongoDriver.DbDescription();
+        db.name = "example";
+        when(mongo.connect(anyString(), anyString())).thenReturn(db);
+        when(mongo.replaceDocument(anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(true);
+        try (DataApeServer server = new DataApeServer(new DataApeServer.ConfigUtil(config), mongo)) {
+            int port = server.start(0);
+            HttpClient client = HttpClient.newBuilder().cookieHandler(new CookieManager()).build();
+            var connected = request(client, port, "POST", "/connect", "{\"cstr\":\"mongodb://host/example\"}");
+            String token = new ObjectMapper().readTree(connected.body()).get("writeToken").asText();
+            String body = "{\"original\":\"{}\",\"replacement\":\"{}\"}";
+            assertEquals(403, write(client, port, body, "http://ape.test", "wrong").statusCode());
+            assertEquals(403, write(client, port, body, "http://other.test", token).statusCode());
+            assertEquals(403, write(HttpClient.newHttpClient(), port, body, "http://ape.test", token).statusCode());
+            verify(mongo, never()).replaceDocument(anyString(), anyString(), anyString(), anyString(), anyString());
+            var saved = write(client, port, body, "http://ape.test", token);
+            assertEquals(200, saved.statusCode());
+            assertTrue(saved.body().contains("\"result\":true"));
+            verify(mongo).replaceDocument(anyString(), anyString(), anyString(), anyString(), anyString());
+
+            var reconnected = request(client, port, "POST", "/connect", "{\"cstr\":\"mongodb://host/example\"}");
+            String newToken = new ObjectMapper().readTree(reconnected.body()).get("writeToken").asText();
+            assertEquals(403, write(client, port, body, "http://ape.test", token).statusCode());
+            assertEquals(200, write(client, port, body, "http://ape.test", newToken).statusCode());
+        }
+    }
+
+    @Test
+    void documentRoutesDistinguishObjectIdsFromIdenticalStrings() throws Exception {
+        var config = new BaseConfiguration();
+        config.setProperty("dataape.write.enabled", true);
+        config.setProperty("dataape.write.origin", "http://ape.test");
+        MongoDriver mongo = mock(MongoDriver.class);
+        var db = new MongoDriver.DbDescription();
+        db.name = "example";
+        when(mongo.connect(anyString(), anyString())).thenReturn(db);
+        var oid = new ObjectId("5ccd00001234567890abcdef");
+        when(mongo.getDocument(anyString(), anyString(), anyString(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn("{}");
+        when(mongo.deleteDocument(anyString(), anyString(), anyString(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(true);
+        try (DataApeServer server = new DataApeServer(new DataApeServer.ConfigUtil(config), mongo)) {
+            int port = server.start(0);
+            HttpClient client = HttpClient.newBuilder().cookieHandler(new CookieManager()).build();
+            var connected = request(client, port, "POST", "/connect", "{\"cstr\":\"mongodb://host/example\"}");
+            String token = new ObjectMapper().readTree(connected.body()).get("writeToken").asText();
+            String path = "/document/example/sample/" + oid.toHexString();
+            assertEquals(200, request(client, port, "GET", path, "").statusCode());
+            assertEquals(200, request(client, port, "GET", path + "?idType=objectId", "").statusCode());
+            assertEquals(400, request(client, port, "GET", path + "?idType=invalid", "").statusCode());
+            assertEquals(400, request(client, port, "GET", "/document/example/sample/bad?idType=objectId", "").statusCode());
+            assertEquals(400, request(client, port, "GET", path + "?idType=objectId&idType=objectId", "").statusCode());
+            verify(mongo).getDocument(anyString(), org.mockito.ArgumentMatchers.eq("example"),
+                    org.mockito.ArgumentMatchers.eq("sample"), org.mockito.ArgumentMatchers.eq(oid.toHexString()));
+            verify(mongo).getDocument(anyString(), org.mockito.ArgumentMatchers.eq("example"),
+                    org.mockito.ArgumentMatchers.eq("sample"), org.mockito.ArgumentMatchers.eq(oid));
+            var deletion = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port
+                    + "/delete/example/sample/" + oid.toHexString() + "?idType=objectId"))
+                    .header("Origin", "http://ape.test").header("X-Data-Ape-CSRF", token).DELETE().build();
+            assertEquals(200, client.send(deletion, HttpResponse.BodyHandlers.ofString()).statusCode());
+            verify(mongo).deleteDocument(anyString(), org.mockito.ArgumentMatchers.eq("example"),
+                    org.mockito.ArgumentMatchers.eq("sample"), org.mockito.ArgumentMatchers.eq(oid));
+        }
+    }
+
+    private static HttpResponse<String> write(HttpClient client, int port, String body, String origin, String token)
+            throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/save/example/sample"))
+                .header("Content-Type", "application/json").header("Origin", origin)
+                .header("X-Data-Ape-CSRF", token).PUT(HttpRequest.BodyPublishers.ofString(body)).build();
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private static HttpResponse<String> request(HttpClient client, int port, String method, String path, String body)

@@ -1,8 +1,11 @@
 package com.isoplane.dataape.ng;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -11,12 +14,14 @@ import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.isoplane.dataape.ng.MongoDriver.DAArchiveException;
 import com.isoplane.dataape.ng.MongoDriver.DADatabaseConnectionException;
 import com.mongodb.MongoException;
 
@@ -26,9 +31,9 @@ import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
 
 /**
- * Read-only port of the legacy Data-Ape HTTP server.
- * The server binds to loopback by default because authentication, TLS and
- * production target enforcement are not yet implemented.
+ * Legacy-shaped Data-Ape HTTP server with writes disabled by default.
+ * The server binds to loopback by default because application authentication,
+ * TLS and production target enforcement are not yet implemented.
  */
 public class DataApeServer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(DataApeServer.class);
@@ -109,12 +114,25 @@ public class DataApeServer implements AutoCloseable {
                 ctx.json(Map.of("data", mongo.getData(sessionId(ctx), ctx.pathParam("database"),
                         ctx.pathParam("table"), params)));
             });
-            cfg.routes.put("/save/{database}/{table}", DataApeServer::rejectWrite);
-            cfg.routes.delete("/delete/{database}/{table}/{id}", DataApeServer::rejectWrite);
+            cfg.routes.get("/document/{database}/{table}/{id}", ctx -> {
+                String document = mongo.getDocument(sessionId(ctx), ctx.pathParam("database"),
+                        ctx.pathParam("table"), documentId(ctx));
+                if (document == null) {
+                    ctx.status(404).json(Map.of("msg", "Document not found", "id", 0));
+                } else {
+                    ctx.json(Map.of("document", document));
+                }
+            });
+            cfg.routes.put("/save/{database}/{table}", this::save);
+            cfg.routes.delete("/delete/{database}/{table}/{id}", this::delete);
             cfg.routes.exception(IllegalArgumentException.class, (ex, ctx) ->
                     ctx.status(400).json(Map.of("msg", ex.getMessage(), "id", 0)));
             cfg.routes.exception(DADatabaseConnectionException.class, (ex, ctx) ->
                     ctx.status(401).json(Map.of("msg", "DB not connected", "id", -1)));
+            cfg.routes.exception(DAArchiveException.class, (ex, ctx) -> {
+                LOG.warn("Archive/delete failed: {}", ex.getMessage());
+                ctx.status(503).json(Map.of("msg", ex.getMessage(), "id", 0));
+            });
             cfg.routes.exception(MongoException.class, (ex, ctx) -> {
                 LOG.warn("MongoDB request failed");
                 ctx.status(503).json(Map.of("msg", "Database request failed", "id", -1));
@@ -167,20 +185,96 @@ public class DataApeServer implements AutoCloseable {
         if (cstr == null || !cstr.isTextual()) {
             throw new IllegalArgumentException("Connection URI is required");
         }
-        ctx.json(databaseDescription(mongo.connect(sessionId(ctx), cstr.textValue())));
+        var db = mongo.connect(sessionId(ctx), cstr.textValue());
+        var response = databaseDescription(db);
+        if (writesEnabled()) {
+            String token = UUID.randomUUID().toString();
+            ctx.req().getSession().setAttribute("dataape.csrf", token);
+            response.put("writeToken", token);
+        } else {
+            ctx.req().getSession().removeAttribute("dataape.csrf");
+        }
+        ctx.json(response);
     }
 
     private Map<String, Object> databaseDescription(MongoDriver.DbDescription db) {
-        return Map.of("dbName", db.name, "tables", db.tables,
-                "decimaldigits", config.config().getInt("ui.decimaldigits", 2));
+        Map<String, Object> response = new HashMap<>();
+        response.put("dbName", db.name);
+        response.put("tables", db.tables);
+        response.put("decimaldigits", config.config().getInt("ui.decimaldigits", 2));
+        return response;
     }
 
     private static String sessionId(Context ctx) {
         return ctx.req().getSession().getId();
     }
 
-    private static void rejectWrite(Context ctx) {
-        ctx.status(403).json(Map.of("msg", "Server is read-only", "id", 0));
+    private void save(Context ctx) {
+        if (!authorizeWrite(ctx)) {
+            return;
+        }
+        final JsonNode body;
+        try {
+            body = JSON.readTree(ctx.body());
+        } catch (JsonProcessingException ex) {
+            throw new IllegalArgumentException("Invalid JSON body");
+        }
+        if (body == null || !body.path("original").isTextual() || !body.path("replacement").isTextual()) {
+            throw new IllegalArgumentException("Original and replacement document JSON are required");
+        }
+        boolean result = mongo.replaceDocument(sessionId(ctx), ctx.pathParam("database"),
+                ctx.pathParam("table"), body.path("original").asText(), body.path("replacement").asText());
+        ctx.json(Map.of("result", result));
+    }
+
+    private void delete(Context ctx) {
+        if (!authorizeWrite(ctx)) {
+            return;
+        }
+        boolean result = mongo.deleteDocument(sessionId(ctx), ctx.pathParam("database"),
+                ctx.pathParam("table"), documentId(ctx));
+        ctx.json(Map.of("result", result));
+    }
+
+    private static Object documentId(Context ctx) {
+        var types = ctx.queryParams("idType");
+        if (types.isEmpty()) {
+            return ctx.pathParam("id");
+        }
+        if (types.size() != 1 || !"objectId".equals(types.get(0)) || !ObjectId.isValid(ctx.pathParam("id"))) {
+            throw new IllegalArgumentException("Invalid document identifier type or ObjectId");
+        }
+        return new ObjectId(ctx.pathParam("id"));
+    }
+
+    private boolean authorizeWrite(Context ctx) {
+        if (!writesEnabled()) {
+            ctx.status(403).json(Map.of("msg", "Server is read-only", "id", 0));
+            return false;
+        }
+        String origin = System.getProperty("dataape.write.origin",
+                config.config().getString("dataape.write.origin", ""));
+        Object expected = ctx.req().getSession().getAttribute("dataape.csrf");
+        String supplied = ctx.header("X-Data-Ape-CSRF");
+        if (origin.isBlank() || !origin.equals(ctx.header("Origin"))
+                || !(expected instanceof String token) || supplied == null
+                || !MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8),
+                        supplied.getBytes(StandardCharsets.UTF_8))) {
+            ctx.status(403).json(Map.of("msg", "Write authorization failed", "id", 0));
+            return false;
+        }
+        return true;
+    }
+
+    private boolean writesEnabled() {
+        String property = System.getProperty("dataape.write.enabled");
+        if (property == null) {
+            return config.config().getBoolean("dataape.write.enabled", false);
+        }
+        if (!"true".equalsIgnoreCase(property) && !"false".equalsIgnoreCase(property)) {
+            throw new IllegalArgumentException("dataape.write.enabled must be true or false");
+        }
+        return Boolean.parseBoolean(property);
     }
 
     /** Stops HTTP, closes session clients and stops configuration reload. */

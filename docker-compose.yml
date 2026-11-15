@@ -6,7 +6,7 @@ services:
     restart: always
     environment:
       TZ: America/New_York
-      JAVA_TOOL_OPTIONS: "-Dda.mongo.allowed.hosts=mongo-db:27017"
+      JAVA_TOOL_OPTIONS: "-Dda.mongo.allowed.hosts=mongo-db:27017 -Ddataape.write.enabled=true -Ddataape.write.origin=http://ape.lan.isoplane.com -Ddataape.delete.mode=archive-first"
     volumes:
       - /mnt/Pool_A/smbshare/docker/data-ape:/docker-data/data-ape:ro
     labels:

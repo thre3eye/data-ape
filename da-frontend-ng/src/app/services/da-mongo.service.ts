@@ -1,6 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, catchError, finalize, map, Observable, of, Subject, take } from 'rxjs';
+import { BehaviorSubject, catchError, finalize, map, Observable, of, Subject, take, throwError } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { DaBusService } from './da-bus.service';
 import { ConfigData, DaConfigService } from './da-config.service';
@@ -19,6 +19,7 @@ export class DaMongoService {
   private displayMap: Map<string, string[]> = new Map();
   private queryMap: Map<string, QueryParameters> = new Map();
   private decimalDigits = 3;
+  private writeToken?: string;
 
   constructor(
     private http: HttpClient,
@@ -122,10 +123,12 @@ export class DaMongoService {
 
   public connect(cstr_: string): Observable<DatabaseDescription | null> {
     this.isLoading.next(true);
+    this.writeToken = undefined;
     let body = { 'cstr': cstr_ };
     let url = `${environment.server}connect`;
     let response = this.http.post<DatabaseDescription>(url, body).pipe(
       map(resp_ => {
+        this.writeToken = resp_.writeToken;
         this.msg.publish({ level: MessageLevel.Default, text: `Connected '${resp_.dbName}'` });
         return resp_;
       }),
@@ -138,6 +141,50 @@ export class DaMongoService {
       finalize(() => this.isLoading.next(false))
     );
     return response;
+  }
+
+  public get canWrite(): boolean {
+    return !!this.writeToken;
+  }
+
+  public getDocument(db: string, table: string, id: DocumentId): Observable<string | null> {
+    const url = `${environment.server}document/${encodeURIComponent(db)}/${encodeURIComponent(table)}/${documentIdPath(id)}`;
+    return this.http.get<{ document: string }>(url).pipe(
+      map(response => response.document),
+      catchError(error => {
+        this.handleError(error, 'Error loading document');
+        return of(null);
+      })
+    );
+  }
+
+  public saveRecord(db: string, table: string, original: string, replacement: string): Observable<boolean> {
+    const url = `${environment.server}save/${encodeURIComponent(db)}/${encodeURIComponent(table)}`;
+    return this.http.put<{ result: boolean }>(url, { original, replacement }, { headers: this.writeHeaders() }).pipe(
+      map(response => response.result),
+      catchError(error => {
+        this.handleError(error, 'Error saving document');
+        return of(false);
+      })
+    );
+  }
+
+  public deleteRecord(db: string, table: string, id: DocumentId): Observable<boolean> {
+    const url = `${environment.server}delete/${encodeURIComponent(db)}/${encodeURIComponent(table)}/${documentIdPath(id)}`;
+    return this.http.delete<{ result: boolean }>(url, { headers: this.writeHeaders() }).pipe(
+      map(response => response.result),
+      catchError(error => {
+        this.handleError(error, 'Error deleting document');
+        return throwError(() => error);
+      })
+    );
+  }
+
+  private writeHeaders(): HttpHeaders {
+    if (!this.writeToken) {
+      throw new Error('Write capability is not available');
+    }
+    return new HttpHeaders({ 'X-Data-Ape-CSRF': this.writeToken });
   }
 
   public getTables(db_?: string): void {
@@ -339,6 +386,7 @@ export interface DatabaseDescription {
   dbName: string;
   tables: Table[];
   decimaldigits: number;
+  writeToken?: string;
 }
 
 export interface Table {
@@ -354,6 +402,23 @@ export interface Tables {
 
 export interface TableData {
   data: Map<string, string[]>;
+}
+
+export type DocumentId = string | { $oid: string };
+
+export function isDocumentId(value: unknown): value is DocumentId {
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+  if (value === null || typeof value !== 'object' || Object.keys(value).length !== 1 || !('$oid' in value)) {
+    return false;
+  }
+  const oid = (value as { $oid: unknown }).$oid;
+  return typeof oid === 'string' && /^[0-9a-f]{24}$/i.test(oid);
+}
+
+function documentIdPath(id: DocumentId): string {
+  return typeof id === 'string' ? encodeURIComponent(id) : `${encodeURIComponent(id.$oid)}?idType=objectId`;
 }
 
 export interface TableDescription {

@@ -2,11 +2,11 @@
 
 ## Status and architecture
 
-This is a side-by-side copy of the legacy Angular frontend, adapted for the read-only `da-server-ng`. The legacy frontend is unchanged. Angular 13 and the existing component/module structure are intentionally retained for this first increment; the framework upgrade and standalone components are separate migration work.
+This is a side-by-side copy of the legacy Angular frontend, adapted for `da-server-ng`. The legacy frontend is unchanged. Angular 13 and the existing component/module structure are intentionally retained for this first increment; the framework upgrade and standalone components are separate migration work.
 
-The connection form accepts the full standard MongoDB URI, including credentials, and sends it only in the JSON body of `POST /connect`. `DaMongoService` uses the session established by the backend for collection discovery and read queries. The record view is read-only and the edit/delete actions are unavailable. The backend remains the enforcement point for writes.
+The connection form accepts the full standard MongoDB URI, including credentials, and sends it only in the JSON body of `POST /connect`. `DaMongoService` uses the session established by the backend for collection discovery, reads and writes. Editing and deletion are exposed only when the backend issues a write token; the backend remains the enforcement point. Edits use complete canonical Extended JSON documents and reject stale replacements. Deletion is transactional by default; the explicitly configured standalone archive-first mode is non-atomic and errors may require verification of both collections. Nonempty string and BSON ObjectId `_id` values are supported for editing and deletion.
 
-Both frontend and backend must be reachable through the same browser origin so the session cookie accompanies subsequent requests. The Angular development server proxies `/connect`, `/tables`, `/data`, and `/config` to `127.0.0.1:4100`; it must run on the same host as the backend. A production web server or reverse proxy must similarly serve the frontend and forward these paths to the backend. The backend currently binds to loopback; a proxy in a separate container cannot reach another container's loopback without suitable networking or a backend deployment change.
+Both frontend and backend must be reachable through the same browser origin so the session cookie accompanies subsequent requests. The Angular development server proxies `/connect`, `/tables`, `/data`, `/document`, `/save`, `/delete`, and `/config` to `127.0.0.1:4100`; it must run on the same host as the backend. If writes are enabled, configure the backend's `dataape.write.origin` to match the browser origin exactly. A web server or reverse proxy must similarly serve the frontend and forward these paths to the backend. The backend binds to loopback by default; a proxy in a separate container needs an explicitly configured wider bind address.
 
 The service worker configuration is inherited from the legacy app. Do not deploy both frontends to the same origin and scope without planning and testing service-worker updates and rollback.
 
@@ -29,6 +29,6 @@ npm test -- --watch=false --browsers=ChromeHeadless --ts-config=tsconfig.connect
 npm run build
 ```
 
-The focused tests check the connection request, failure handling and read-only record view. Their separate TypeScript configuration avoids compiling unrelated legacy specs. A Chrome-compatible browser is required for Karma. Build output is in `dist/data-ape`.
+The focused tests check the connection request, failure handling, write token and write-control visibility. Their separate TypeScript configuration avoids compiling unrelated legacy specs. A Chrome-compatible browser is required for Karma. Build output is in `dist/data-ape`.
 
 This development port has not been approved for production. HTTP on a LAN exposes the submitted credentials in transit; use an appropriately configured TLS proxy if protection is required. Authentication, egress enforcement and backend production readiness remain separate tasks. Do not place real credentials in configuration, logs, tests or documentation.

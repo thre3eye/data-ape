@@ -1,7 +1,8 @@
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { DaLogService } from '../services/da-log.service';
-import { DaMongoService, TableDescription } from '../services/da-mongo.service';
+import { DaMongoService, isDocumentId, TableDescription } from '../services/da-mongo.service';
 
 @Component({
   selector: 'app-da-data',
@@ -17,12 +18,17 @@ export class DaDataComponent implements OnInit, AfterViewInit {
   public highlight?: string;
   public selection?: { table: string, idx: number, data: any };
   public selectionText?: string;
+  public originalDocument?: string;
   public decimalDigits = 2;
 
   constructor(
     private log: DaLogService,
     private mongoDb: DaMongoService
   ) { }
+
+  public get canWrite(): boolean {
+    return this.mongoDb.canWrite;
+  }
 
   public onDragStart(event_: DragEvent, header_: string): void {
     this.log.log(`onDragStart: ${header_}`);
@@ -95,29 +101,80 @@ export class DaDataComponent implements OnInit, AfterViewInit {
       let value = col[idx];
       obj[header_] = value;
     });
-    this.log.log(`dataContextMenuClick: ${action}/${idx}: ${JSON.stringify(obj)}`);
     switch (action) {
+      case 'delete':
+        this.deleteRecord(obj['_id']);
+        break;
       case 'view':
-        // for (let i = 0; i < this.data.headers.length; i++) {
-        //   let type = this.data.types[i];
-        //   if ('double' !== type)
-        //     continue;
-        //   let field = this.data.headers[i];
-        //   let val = obj[field];
-        //   if (val == null || isNaN(val))
-        //     continue;
-        //   let dval = (val / 100.0) * 100.0;
-        //   obj[field] = dval;
-        // }
-        this.selection = { table: this.data.table, idx: idx, data: obj };
-        this.selectionText = JSON.stringify(obj, null, 2);
+        if (this.canWrite && isDocumentId(obj['_id'])) {
+          const current = this.data;
+          this.mongoDb.getDocument(current.db, current.table, obj['_id']).subscribe(document => {
+            if (document !== null && this.data === current) {
+              this.selection = { table: current.table, idx: idx, data: obj };
+              this.originalDocument = document;
+              this.selectionText = JSON.stringify(JSON.parse(document), null, 2);
+            }
+          });
+        } else {
+          this.selection = { table: this.data.table, idx: idx, data: obj };
+          this.originalDocument = undefined;
+          this.selectionText = JSON.stringify(obj, null, 2);
+        }
         break;
     }
     this.dataCtxMenu.nativeElement.style.display = "none";
   }
 
+  public deleteRecord(id: unknown): void {
+    if (!this.canWrite || !this.data || !isDocumentId(id)) {
+      alert('Deleting requires a nonempty string or ObjectId _id and enabled writes.');
+      return;
+    }
+    const current = this.data;
+    if (confirm('Archive and delete this database record?')) {
+      this.mongoDb.deleteRecord(current.db, current.table, id).subscribe({
+        next: result => {
+          if (result) {
+            this.mongoDb.getTableData(current.db, current.table, this.mongoDb.getQueryParameters(current.table));
+          } else {
+            alert('Document was not found. Refresh and verify.');
+          }
+        },
+        error: (error: HttpErrorResponse) => {
+          const message = error.error?.msg;
+          alert(typeof message === 'string' ? message : 'Delete failed or its outcome is unknown. Verify both collections.');
+        }
+      });
+    }
+  }
+
+  public saveDataView(): void {
+    if (!this.canWrite || !this.data || !this.originalDocument || !this.selectionText) {
+      return;
+    }
+    try {
+      JSON.parse(this.selectionText);
+    } catch {
+      alert('Invalid JSON');
+      return;
+    }
+    const current = this.data;
+    if (confirm('Replace this database record?')) {
+      this.mongoDb.saveRecord(current.db, current.table, this.originalDocument, this.selectionText)
+        .subscribe(result => {
+          if (result) {
+            this.closeDataView();
+            this.mongoDb.getTableData(current.db, current.table, this.mongoDb.getQueryParameters(current.table));
+          } else {
+            alert('Save failed or the record changed. Refresh and try again.');
+          }
+        });
+    }
+  }
+
   public closeDataView(): void {
     this.selection = undefined;
+    this.originalDocument = undefined;
   }
 
 
