@@ -8,6 +8,8 @@ The connection form accepts the full standard MongoDB URI, including credentials
 
 Both frontend and backend must be reachable through the same browser origin so the session cookie accompanies subsequent requests. The Angular development server proxies `/connect`, `/tables`, `/data`, `/document`, `/save`, `/delete`, and `/config` to `127.0.0.1:4100`; it must run on the same host as the backend. If writes are enabled, configure the backend's `dataape.write.origin` to match the browser origin exactly. A web server or reverse proxy must similarly serve the frontend and forward these paths to the backend. The backend binds to loopback by default; a proxy in a separate container needs an explicitly configured wider bind address.
 
+The UI defaults to dark mode. Expand Settings in the footer to select Light or Dark; the preference is stored in the browser's local storage for this origin.
+
 The service worker configuration is inherited from the legacy app. Do not deploy both frontends to the same origin and scope without planning and testing service-worker updates and rollback.
 
 ## Dependencies and development
@@ -25,7 +27,7 @@ The development server defaults to `http://localhost:4200`; use `npm start -- --
 ## Tests and build
 
 ```bash
-npm test -- --watch=false --browsers=ChromeHeadless --ts-config=tsconfig.connection-spec.json --include=src/app/services/da-mongo.service.spec.ts --include=src/app/da-data/da-data.component.spec.ts
+npm test -- --watch=false --browsers=ChromeHeadless --ts-config=tsconfig.connection-spec.json --include=src/app/services/da-mongo.service.spec.ts --include=src/app/da-data/da-data.component.spec.ts --include=src/app/services/da-theme.service.spec.ts
 npm run build
 ```
 

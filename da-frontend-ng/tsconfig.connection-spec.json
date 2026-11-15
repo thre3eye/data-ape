@@ -3,6 +3,7 @@
   "include": [
     "src/app/services/da-mongo.service.spec.ts",
     "src/app/da-data/da-data.component.spec.ts",
+    "src/app/services/da-theme.service.spec.ts",
     "src/**/*.d.ts"
   ]
 }

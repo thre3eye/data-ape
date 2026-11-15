@@ -17,7 +17,7 @@
         grid-row: 1;
         height: $header-height;
         line-height: $header-height;
-        border-bottom: 1pt solid black;
+        border-bottom: 1pt solid $grid-color;
 
         display: flex;
         flex-direction: row;
@@ -78,7 +78,7 @@
     pointer-events: none;
     background-color: none;
     .loader {
-        $loader-color: rgb(16, 16, 43);
+        $loader-color: var(--da-text);
         position: relative;
         margin: auto;
         top: 40%;

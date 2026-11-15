@@ -1,7 +1,8 @@
 :host {
     font-family: "Roboto Mono", monospace;
     font-size: 14px;
-    color: #333;
+    color: var(--da-text);
+    background-color: var(--da-background);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -33,7 +34,7 @@
         grid-row: 1;
         $height: 26pt;
 
-        border-bottom: 1pt solid black;
+        border-bottom: 1pt solid var(--da-border);
         line-height: $height;
     }
 
@@ -46,7 +47,7 @@
         grid-row: 3;
         $height: 28pt;
 
-        border-top: 1pt solid black;
+        border-top: 1pt solid var(--da-border);
         line-height: $height;
     }
 }

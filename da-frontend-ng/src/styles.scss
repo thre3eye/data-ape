@@ -1,4 +1,42 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+    color-scheme: dark;
+    --da-background: #161c24;
+    --da-text: #e3eaf2;
+    --da-border: #536172;
+    --da-header: #30455a;
+    --da-even: #202a35;
+    --da-odd: #1b242e;
+    --da-highlight: #375d49;
+    --da-highlight-strong: #477a5e;
+    --da-hover: #48515c;
+    --da-control: #25313e;
+    --da-menu: #25313e;
+    --da-menu-hover: #3a4b5c;
+    --da-button-hover: #485a6c;
+    --da-success: #8ed7a7;
+    --da-error: #ff9a9a;
+    --da-warning: #f5c57a;
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+    --da-background: #fff;
+    --da-text: #333;
+    --da-border: #b4b4b4;
+    --da-header: #9dbbd6;
+    --da-even: #f2f2f2;
+    --da-odd: #ececec;
+    --da-highlight: #e2ffac;
+    --da-highlight-strong: #c4ee76;
+    --da-hover: #ffe389;
+    --da-control: #fff;
+    --da-menu: #fff;
+    --da-menu-hover: #eef;
+    --da-button-hover: #fff3ad;
+    --da-success: #006400;
+    --da-error: #b00020;
+    --da-warning: #805000;
+}
 
 html, body, app-root {
     height: 100%;
@@ -8,10 +46,25 @@ html, body, app-root {
     overflow: hidden;
 }
 
-// body {
-//     display: flex;
-//     flex-direction: column;
-// }
+body {
+    background: var(--da-background);
+    color: var(--da-text);
+}
+
+input, select, textarea, button {
+    color: var(--da-text);
+    background-color: var(--da-control);
+    border-color: var(--da-border);
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid #78aee2;
+    outline-offset: 1px;
+}
+
+as-split > .as-split-gutter {
+    background-color: var(--da-border) !important;
+}
 
 app-root {
     display: flex;

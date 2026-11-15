@@ -23,7 +23,6 @@
         width: 100%;
         height: 100%;
         border: none;
-        outline: none;
         overflow: hidden;
         resize: none;
     }
@@ -73,7 +72,7 @@
             background-color: $background-color-highlight !important;
 
             .highlight {
-                background-color: darken($color: $background-color-highlight, $amount: 12) !important;
+                background-color: var(--da-highlight-strong) !important;
             }
         }
     }

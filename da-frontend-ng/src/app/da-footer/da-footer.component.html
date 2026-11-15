@@ -27,5 +27,10 @@
         <div class="decimals-lbl">decimals:</div>
         <div class="decimals-val"><input #decimalsVal class="decimals-inp" type="number" [(ngModel)]="decimals"
                 (keyup.enter)="setDecimals()"></div>
+        <label for="theme">Theme:</label>
+        <select id="theme" class="theme-select" [ngModel]="theme.current" (ngModelChange)="theme.set($event)">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </select>
     </div>
 </div>

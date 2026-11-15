@@ -3,6 +3,7 @@ import { environment } from 'src/environments/environment';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, QueryParameters, TableDescription } from '../services/da-mongo.service';
 import { DaMsgService, MessageData, MessageLevel } from '../services/da-msg.service';
+import { DaThemeService } from '../services/da-theme.service';
 
 @Component({
   selector: 'app-da-footer',
@@ -23,7 +24,8 @@ export class DaFooterComponent implements OnInit {
   constructor(
     private log: DaLogService,
     private msg: DaMsgService,
-    private mongoDb: DaMongoService
+    private mongoDb: DaMongoService,
+    public theme: DaThemeService
   ) {
     this.mongoDb.data.subscribe(data_ => {
       if (!data_ || data_.querySize < 0)
