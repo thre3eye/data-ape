@@ -14,13 +14,12 @@
         },
         {
             "type": "java",
-            "name": "Launch DataApeServer",
+            "name": "Launch DataApeServer NG",
             "request": "launch",
-            "mainClass": "com.isoplane.dataape.DataApeServer",
-            "projectName": "da-server",
-            "args": "${workspaceFolder}/da-server/da.properties",
-//            "args": "${workspaceFolder}/NOCHECKIN_da.properties,${workspaceFolder}/da-server/da.properties",
-            "vmArgs": "-Dlogback.configurationFile=${workspaceFolder}/da-server/da-logback.xml"
+            "mainClass": "com.isoplane.dataape.ng.DataApeServer",
+            "projectName": "da-server-ng",
+            "args": "${workspaceFolder}/.local/server.properties",
+            "cwd": "${workspaceFolder}"
         },
         {
             "type": "pwa-msedge",
@@ -29,7 +28,7 @@
             "port": 9222,
             "name": "Launch Edge against localhost",
             "url": "http://localhost:4200",
-            "webRoot": "${workspaceFolder}/da-frontend"
+            "webRoot": "${workspaceFolder}/da-frontend-ng"
         },
         // {
         //     "name": "ng serve",

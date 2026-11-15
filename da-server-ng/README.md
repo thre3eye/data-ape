@@ -2,7 +2,7 @@
 
 ## Status and motivation
 
-`da-server-ng` is a side-by-side port of the legacy Data-Ape backend, intended for development and the explicitly approved LAN deployment. It retains the recognizable `DataApeServer`, `MongoDriver`, and `JsonHelper` responsibilities and the legacy read response shapes while fixing the unfiltered-page bug. The legacy `da-server` and `da-frontend` are unchanged; a separate `da-frontend-ng` is available.
+`da-server-ng` is the Data-Ape backend, intended for development and the explicitly approved LAN deployment. It retains the legacy read response shapes while fixing the unfiltered-page bug. Its frontend is `da-frontend-ng`; the legacy modules remain available in Git history.
 
 This is not ready for exposure to untrusted users. Writes are disabled by default but enabled explicitly in the LAN Compose deployment. Application-level authentication, TLS, effective network egress enforcement, and production deployment controls remain open.
 
@@ -52,6 +52,8 @@ dataape.write.origin=http://localhost:4200
 Only use explicitly approved isolated targets. Optional `server.static.files`/`server.static.path` and `server.config.files`/`server.config.path` configure external static directories and their hosted paths. Keep credentials out of configuration committed to source control.
 
 The main class is `com.isoplane.dataape.ng.DataApeServer`. Maven's ordinary package output is a thin JAR, not a self-contained executable distribution; running it requires its runtime dependencies on the classpath.
+
+For the VS Code launch configuration, copy `dev.properties.example` to `.local/server.properties` at the repository root and adjust the allowed MongoDB host for your isolated development environment. The `.local/` directory is ignored by Git; do not commit credentials. The example uses loopback and leaves writes disabled.
 
 ## Container
 

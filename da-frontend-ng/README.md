@@ -2,7 +2,7 @@
 
 ## Status and architecture
 
-This is a side-by-side copy of the legacy Angular frontend, adapted for `da-server-ng`. The legacy frontend is unchanged. Angular 13 and the existing component/module structure are intentionally retained for this first increment; the framework upgrade and standalone components are separate migration work.
+This Angular frontend works with `da-server-ng`. Angular 13 and the existing component/module structure are intentionally retained; the framework upgrade and standalone components are separate migration work. The legacy frontend remains available in Git history.
 
 The connection form accepts the full standard MongoDB URI, including credentials, and sends it only in the JSON body of `POST /connect`. `DaMongoService` uses the session established by the backend for collection discovery, reads and writes. Editing and deletion are exposed only when the backend issues a write token; the backend remains the enforcement point. Edits use complete canonical Extended JSON documents and reject stale replacements. Deletion is transactional by default; the explicitly configured standalone archive-first mode is non-atomic and errors may require verification of both collections. Nonempty string and BSON ObjectId `_id` values are supported for editing and deletion.
 

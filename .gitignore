@@ -1,6 +1,6 @@
 */target/
 */.vscode/
 *NOCHECKIN*
+/.local/
 
 web_config/da-config.json
-package-lock.json

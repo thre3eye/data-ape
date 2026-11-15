@@ -6,6 +6,9 @@
     //    "taskName": "serve",
         "type": "shell",
         "command": "npm start",
+        "options": {
+            "cwd": "${workspaceFolder}/da-frontend-ng"
+        },
         "problemMatcher": [
             "$tsc"
         ]

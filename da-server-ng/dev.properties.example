@@ -1,0 +1,2 @@
+server.port=4100
+mongo.allowed.hosts=127.0.0.1:27017
