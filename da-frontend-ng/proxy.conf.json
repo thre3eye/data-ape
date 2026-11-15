@@ -1,0 +1,14 @@
+{
+  "/connect": {
+    "target": "http://127.0.0.1:4100"
+  },
+  "/tables": {
+    "target": "http://127.0.0.1:4100"
+  },
+  "/data": {
+    "target": "http://127.0.0.1:4100"
+  },
+  "/config": {
+    "target": "http://127.0.0.1:4100"
+  }
+}

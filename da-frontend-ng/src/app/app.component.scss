@@ -1,0 +1,52 @@
+:host {
+    font-family: "Roboto Mono", monospace;
+    font-size: 14px;
+    color: #333;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.top-area {
+    display: block;
+    height: min-content;
+}
+
+.sidebar-area {
+    overflow: hidden;
+    display: block;
+    overflow: hidden;
+
+    .sidebar-content {
+        position: relative;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+    }
+}
+
+.main-area {
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+
+    .header-content {
+        grid-row: 1;
+        $height: 26pt;
+
+        border-bottom: 1pt solid black;
+        line-height: $height;
+    }
+
+    .data-content {
+        grid-row: 2;
+        overflow: hidden;
+    }
+
+    .footer-content {
+        grid-row: 3;
+        $height: 28pt;
+
+        border-top: 1pt solid black;
+        line-height: $height;
+    }
+}

@@ -1,0 +1,109 @@
+@import "../base.scss";
+
+:host {
+    display: flex;
+    height: 100%;
+}
+
+#headerCtxMenu,
+#dataCtxMenu {
+    display: none;
+    z-index: 100;
+}
+
+.data {
+    height: 100%;
+    .close-button {
+        position: sticky;
+        top: 0;
+        float: right;
+        @include da-button(12pt, 6pt, rgba(0, 0, 0, 0));
+    }
+    textarea {
+        width: 100%;
+        height: 100%;
+        border: none;
+        outline: none;
+        overflow: hidden;
+        resize: none;
+    }
+}
+
+.content {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+
+    table {
+        width: max-content;
+    }
+
+    .fixed_headers thead th {
+        position: sticky;
+        top: 0; /* REQUIRED: https://stackoverflow.com/a/43707215 */
+        resize: horizontal;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        background-color: $background-color-header;
+    }
+
+    tbody tr:hover {
+        background-color: $background-color-hover;
+    }
+
+    td,
+    th {
+        padding: 0pt 4pt;
+        .header-cell {
+            max-width: 70pt;
+        }
+    }
+
+    tr {
+        &:nth-child(even) {
+            background-color: $background-color-even;
+        }
+        &:nth-child(odd) {
+            background-color: $background-color-odd;
+        }
+
+        &.selected {
+            font-weight: bold;
+            background-color: $background-color-highlight !important;
+
+            .highlight {
+                background-color: darken($color: $background-color-highlight, $amount: 12) !important;
+            }
+        }
+    }
+
+    .highlight {
+        background-color: $background-color-highlight;
+    }
+
+    .ArrayList,
+    .Document,
+    .array,
+    .object {
+        max-width: 100pt;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .Double,
+    .double {
+        text-align: right;
+    }
+    .Integer,
+    .Long,
+    .int,
+    .long {
+        text-align: right;
+    }
+    .String,
+    .string {
+        text-align: left;
+    }
+}

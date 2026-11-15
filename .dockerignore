@@ -1,0 +1,13 @@
+**
+!da-server-ng/
+!da-server-ng/Dockerfile
+!da-server-ng/container.properties
+!da-server-ng/target/
+!da-server-ng/target/classes/
+!da-server-ng/target/classes/**
+!da-server-ng/target/dependency/
+!da-server-ng/target/dependency/**
+!da-frontend-ng/
+!da-frontend-ng/dist/
+!da-frontend-ng/dist/data-ape/
+!da-frontend-ng/dist/data-ape/**

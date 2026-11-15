@@ -1,0 +1,12 @@
+<div class="content" [ngClass]="isOpen ? 'open' : 'closed'">
+    <div class="wrapper">
+        <div class="label">Connect:</div>
+        <div class="value">
+            <input aria-label="Connection string" class="find-inp" type="password" size="64" [(ngModel)]="cStr"
+                (keyup.enter)="submit()">
+        </div>
+        <div class="submit-button">
+            <div class="button" (click)="submit()" title="Connect...">Connect</div>
+        </div>
+    </div>
+</div>
