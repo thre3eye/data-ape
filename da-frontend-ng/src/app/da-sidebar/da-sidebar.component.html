@@ -1,10 +1,31 @@
 <div class="content">
     <div class="header">
+        <div class="settings-slot">
+            <button type="button" class="settings-button" title="Settings" aria-label="Settings"
+                (click)="openSettings()">&#9881;</button>
+        </div>
         <div>DB: </div>
         <div class="db">{{db}}</div>
         <div class="refresh" title="Reload tables..." (click)="refresh()">↻</div>
         <div class="connect" title="Connect..." (click)="connect()">⮃</div>
     </div>
+
+    <dialog #settingsDialog aria-labelledby="settings-title">
+        <div class="dialog-header">
+            <h2 id="settings-title">Settings</h2>
+            <button type="button" aria-label="Close settings" (click)="closeSettings()">&#10005;</button>
+        </div>
+        <div class="dialog-field">
+            <label for="theme">Theme</label>
+            <select id="theme" [ngModel]="theme.current" (ngModelChange)="theme.set($event)">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+            </select>
+        </div>
+        <button type="button" class="disconnect-button" (click)="disconnect()" [disabled]="!db || disconnecting || isLoading">
+            {{disconnecting ? 'Disconnecting...' : 'Disconnect database'}}
+        </button>
+    </dialog>
     <div class="tables">
         <div *ngIf="isLoading" class="loader-wrapper">
             <div class="loader"></div>

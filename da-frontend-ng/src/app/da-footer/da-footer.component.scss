@@ -88,7 +88,7 @@
         grid-column: 1 / -1;
         grid-row: 2;
         display: grid;
-        grid-template-columns: 100pt 60pt 30pt 60pt 100pt auto;
+        grid-template-columns: 100pt 60pt 30pt auto;
         column-gap: 8pt;
         border-top: 1px solid $grid-color;
         background-color: $background-color-odd;
@@ -103,9 +103,6 @@
         .decimals-inp {
             width: 30pt;
             text-align: center;
-        }
-        .theme-select {
-            width: 100%;
         }
     }
 }

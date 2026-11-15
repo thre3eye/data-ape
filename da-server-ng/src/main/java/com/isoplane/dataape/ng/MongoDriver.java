@@ -529,6 +529,29 @@ public class MongoDriver implements AutoCloseable {
         return session.client;
     }
 
+    /**
+     * Removes a session and closes its client after in-flight operations finish.
+     * Marking it closed under the same lock also prevents an in-flight reconnect
+     * from installing a client after the disconnect.
+     *
+     * @param sessionId session whose client must be released
+     */
+    public void disconnect(String sessionId) {
+        Session session = sessions.get(sessionId);
+        if (session == null) {
+            return;
+        }
+        synchronized (session) {
+            if (!session.closed) {
+                session.closed = true;
+                sessions.remove(sessionId, session);
+                if (session.client != null) {
+                    session.client.close();
+                }
+            }
+        }
+    }
+
     void cleanSessions() {
         long now = System.currentTimeMillis();
         sessions.forEach((id, session) -> {

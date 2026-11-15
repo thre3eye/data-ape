@@ -66,6 +66,29 @@ class MongoDriverTest {
     }
 
     @Test
+    void disconnectClosesOnlyTheSelectedSessionAndAllowsAReconnect() {
+        MongoClient first = client();
+        MongoClient second = client();
+        MongoClient reconnected = client();
+        AtomicInteger created = new AtomicInteger();
+        var clients = List.of(first, second, reconnected);
+        try (MongoDriver driver = new MongoDriver(config(), uri -> clients.get(created.getAndIncrement()))) {
+            driver.updateSession("a", Long.MAX_VALUE);
+            driver.updateSession("b", Long.MAX_VALUE);
+            driver.connect("a", "mongodb://fixture:27017/example");
+            driver.connect("b", "mongodb://fixture:27017/example");
+            driver.disconnect("a");
+            verify(first).close();
+            verify(second, never()).close();
+            assertThrows(MongoDriver.DADatabaseConnectionException.class, () -> driver.getTables("a", "example"));
+            assertEquals("example", driver.getTables("b", "example").name);
+            driver.updateSession("a", Long.MAX_VALUE);
+            assertEquals("example", driver.connect("a", "mongodb://fixture:27017/example").name);
+        }
+        verify(reconnected).close();
+    }
+
+    @Test
     void acceptsRawAtSignsWithoutChangingEncodedPasswordsOrTargetChecks() {
         var parsed = new AtomicReference<ConnectionString>();
         try (MongoDriver driver = new MongoDriver(config(), uri -> {

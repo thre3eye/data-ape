@@ -31,6 +31,7 @@ export class DaTopComponent implements OnInit {
     this.bus.isTopVisible.next(false);
     this.mongoDb.connect(this.cStr).subscribe(db_ => {
       if (db_) {
+        this.cStr = undefined;
         this.bus.db.next(db_);
       } else {
         this.bus.db.next(null);

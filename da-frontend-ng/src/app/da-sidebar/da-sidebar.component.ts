@@ -1,7 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { DaBusService } from '../services/da-bus.service';
 import { DaLogService } from '../services/da-log.service';
 import { DaMongoService, Table } from '../services/da-mongo.service';
+import { DaThemeService } from '../services/da-theme.service';
+
+interface SettingsDialog extends HTMLElement {
+  showModal(): void;
+  close(): void;
+}
 
 @Component({
   selector: 'app-da-sidebar',
@@ -9,6 +16,7 @@ import { DaMongoService, Table } from '../services/da-mongo.service';
   styleUrls: ['./da-sidebar.component.scss']
 })
 export class DaSidebarComponent implements OnInit {
+  @ViewChild('settingsDialog') settingsDialog?: ElementRef<SettingsDialog>;
 
   public db?: string;
   public tables: Table[] = [];
@@ -17,11 +25,14 @@ export class DaSidebarComponent implements OnInit {
   private isTopVisible = true;
 
   public selectedTable?: string;
+  public disconnecting = false;
 
   constructor(
     private log: DaLogService,
     private bus: DaBusService,
-    private mongoDb: DaMongoService
+    private mongoDb: DaMongoService,
+    public theme: DaThemeService,
+    @Inject(DOCUMENT) private document: Document
   ) {
     this.mongoDb.data.subscribe(data_ => {
       if (!data_ || !data_.table)
@@ -36,6 +47,29 @@ export class DaSidebarComponent implements OnInit {
     });
     this.bus.isTopVisible.subscribe(status_ => {
       this.isTopVisible = status_;
+    });
+  }
+
+  public openSettings(): void {
+    this.settingsDialog?.nativeElement.showModal();
+  }
+
+  public closeSettings(): void {
+    this.settingsDialog?.nativeElement.close();
+  }
+
+  public disconnect(): void {
+    if (this.disconnecting || !this.db || !this.document.defaultView?.confirm(
+      'Disconnect from this database? Unsaved edits will be discarded.')) {
+      return;
+    }
+    this.disconnecting = true;
+    this.mongoDb.disconnect().subscribe({
+      next: () => this.document.defaultView?.location.replace(this.document.baseURI),
+      error: () => {
+        this.disconnecting = false;
+        this.document.defaultView?.alert('Could not confirm database disconnect. Please try again.');
+      }
     });
   }
 

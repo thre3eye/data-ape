@@ -24,7 +24,36 @@
         align-items: center;
         justify-content: center;
 
+        .settings-slot {
+            flex: 1 1 0;
+            min-width: max-content;
+            display: flex;
+            justify-content: center;
+            padding: 0 5pt;
+        }
+
+        &::after {
+            content: "";
+            flex: 1 1 0;
+        }
+
+        .settings-button {
+            font-size: 15pt;
+            line-height: 1;
+            padding: 2pt;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            &:hover {
+                background: var(--da-button-hover);
+            }
+        }
+
         .db {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             padding-left: 5pt;
             font-weight: bold;
         }
@@ -68,6 +97,47 @@
             font-weight: bold;
             background-color: $background-color-highlight !important;
         }
+    }
+}
+
+dialog {
+    color: var(--da-text);
+    background: var(--da-background);
+    border: 1px solid var(--da-border);
+    border-radius: 6px;
+    padding: 18px;
+    min-width: 260px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+    &::backdrop {
+        background: rgba(0, 0, 0, 0.6);
+    }
+    .dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 30px;
+        h2 {
+            margin: 0;
+            font-size: 1.15em;
+        }
+    }
+    .dialog-field {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 30px;
+        margin: 24px 0;
+    }
+    button, select {
+        padding: 5px 8px;
+        border: 1px solid var(--da-border);
+        border-radius: 3px;
+    }
+    button:not(:disabled) {
+        cursor: pointer;
+    }
+    .disconnect-button {
+        width: 100%;
     }
 }
 

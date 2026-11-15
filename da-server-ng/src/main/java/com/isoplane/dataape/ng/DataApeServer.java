@@ -99,6 +99,7 @@ public class DataApeServer implements AutoCloseable {
                 ctx.header("Expires", "0");
             });
             cfg.routes.post("/connect", this::connect);
+            cfg.routes.post("/disconnect", this::disconnect);
             cfg.routes.get("/tables/{database}", ctx -> {
                 var db = mongo.getTables(sessionId(ctx), ctx.pathParam("database"));
                 ctx.json(databaseDescription(db));
@@ -185,16 +186,20 @@ public class DataApeServer implements AutoCloseable {
         if (cstr == null || !cstr.isTextual()) {
             throw new IllegalArgumentException("Connection URI is required");
         }
-        var db = mongo.connect(sessionId(ctx), cstr.textValue());
-        var response = databaseDescription(db);
-        if (writesEnabled()) {
-            String token = UUID.randomUUID().toString();
-            ctx.req().getSession().setAttribute("dataape.csrf", token);
-            response.put("writeToken", token);
-        } else {
-            ctx.req().getSession().removeAttribute("dataape.csrf");
+        var session = ctx.req().getSession();
+        synchronized (session) {
+            session.getCreationTime();
+            var db = mongo.connect(session.getId(), cstr.textValue());
+            var response = databaseDescription(db);
+            if (writesEnabled()) {
+                String token = UUID.randomUUID().toString();
+                session.setAttribute("dataape.csrf", token);
+                response.put("writeToken", token);
+            } else {
+                session.removeAttribute("dataape.csrf");
+            }
+            ctx.json(response);
         }
-        ctx.json(response);
     }
 
     private Map<String, Object> databaseDescription(MongoDriver.DbDescription db) {
@@ -203,6 +208,22 @@ public class DataApeServer implements AutoCloseable {
         response.put("tables", db.tables);
         response.put("decimaldigits", config.config().getInt("ui.decimaldigits", 2));
         return response;
+    }
+
+    private void disconnect(Context ctx) {
+        // A non-simple header requires same-origin browser access or a successful
+        // CORS preflight; this server does not grant cross-origin access.
+        if (!"1".equals(ctx.header("X-Data-Ape-Disconnect"))) {
+            ctx.status(403).json(Map.of("msg", "Disconnect authorization failed", "id", 0));
+            return;
+        }
+        var session = ctx.req().getSession();
+        synchronized (session) {
+            session.getCreationTime();
+            mongo.disconnect(session.getId());
+            session.invalidate();
+        }
+        ctx.json(Map.of("result", true));
     }
 
     private static String sessionId(Context ctx) {

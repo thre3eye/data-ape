@@ -105,6 +105,31 @@ class DataApeServerTest {
     }
 
     @Test
+    void disconnectRequiresCustomHeaderAndInvalidatesTheSession() throws Exception {
+        var config = new BaseConfiguration();
+        config.setProperty("dataape.write.enabled", true);
+        config.setProperty("dataape.write.origin", "http://ape.test");
+        MongoDriver mongo = mock(MongoDriver.class);
+        var db = new MongoDriver.DbDescription();
+        db.name = "example";
+        when(mongo.connect(anyString(), anyString())).thenReturn(db);
+        try (DataApeServer server = new DataApeServer(new DataApeServer.ConfigUtil(config), mongo)) {
+            int port = server.start(0);
+            HttpClient client = HttpClient.newBuilder().cookieHandler(new CookieManager()).build();
+            var connected = request(client, port, "POST", "/connect", "{\"cstr\":\"mongodb://host/example\"}");
+            String token = new ObjectMapper().readTree(connected.body()).get("writeToken").asText();
+            assertEquals(403, request(client, port, "POST", "/disconnect", "{}").statusCode());
+            verify(mongo, never()).disconnect(anyString());
+            var disconnect = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/disconnect"))
+                    .header("X-Data-Ape-Disconnect", "1")
+                    .POST(HttpRequest.BodyPublishers.ofString("{}")).build();
+            assertEquals(200, client.send(disconnect, HttpResponse.BodyHandlers.ofString()).statusCode());
+            verify(mongo).disconnect(anyString());
+            assertEquals(403, write(client, port, "{}", "http://ape.test", token).statusCode());
+        }
+    }
+
+    @Test
     void writesRequireEnabledPolicySameOriginAndSessionToken() throws Exception {
         var config = new BaseConfiguration();
         config.setProperty("dataape.write.enabled", true);

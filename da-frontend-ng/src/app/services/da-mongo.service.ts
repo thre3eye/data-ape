@@ -147,6 +147,22 @@ export class DaMongoService {
     return !!this.writeToken;
   }
 
+  public disconnect(): Observable<void> {
+    const headers = new HttpHeaders({ 'X-Data-Ape-Disconnect': '1' });
+    return this.http.post<{ result: boolean }>(`${environment.server}disconnect`, {}, { headers }).pipe(
+      map(response => {
+        if (!response.result) {
+          throw new Error('Database disconnect was not confirmed');
+        }
+        this.writeToken = undefined;
+      }),
+      catchError(error => {
+        this.handleError(error, 'Could not disconnect database. Try again.');
+        return throwError(() => error);
+      })
+    );
+  }
+
   public getDocument(db: string, table: string, id: DocumentId): Observable<string | null> {
     const url = `${environment.server}document/${encodeURIComponent(db)}/${encodeURIComponent(table)}/${documentIdPath(id)}`;
     return this.http.get<{ document: string }>(url).pipe(

@@ -47,6 +47,21 @@ describe('DaMongoService connection', () => {
     expect(service.isLoading.value).toBeFalse();
   });
 
+  it('sends a protected disconnect request and clears write capability only on success', () => {
+    service.connect('mongodb://mongo:27017/example').subscribe();
+    http.expectOne('connect').flush({ dbName: 'example', tables: [], decimaldigits: 2, writeToken: 'test-token' });
+    const failure = jasmine.createSpy('failure');
+    service.disconnect().subscribe({ error: failure });
+    const failed = http.expectOne('disconnect');
+    expect(failed.request.headers.get('X-Data-Ape-Disconnect')).toBe('1');
+    failed.flush({ msg: 'Failure' }, { status: 503, statusText: 'Unavailable' });
+    expect(failure).toHaveBeenCalled();
+    expect(service.canWrite).toBeTrue();
+    service.disconnect().subscribe();
+    http.expectOne('disconnect').flush({ result: true });
+    expect(service.canWrite).toBeFalse();
+  });
+
   it('sends the session write token with mutations only after a writable connection', () => {
     service.connect('mongodb://mongo:27017/example').subscribe();
     http.expectOne('connect').flush({ dbName: 'example', tables: [], decimaldigits: 2, writeToken: 'test-token' });
