@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25.0.5_8-jre
 
 WORKDIR /app
 COPY da-server-ng/target/classes/ /app/classes/

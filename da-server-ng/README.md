@@ -14,9 +14,9 @@ This is not ready for exposure to untrusted users. Writes are disabled by defaul
 | `MongoDriver` | One MongoDB client and metadata cache per session, connection discovery, filtered reads, guarded replacements, transactional archival deletes, expiration and cleanup. |
 | `JsonHelper` | Validates legacy selection, sorting and pagination; converts supported predicates to BSON. |
 
-The service targets Java 21 and uses Javalin 7.2.4, MongoDB sync driver 5.14.0, Jackson 2.19.4, Commons BeanUtils 1.11.0 for properties-file loading, and the AlphaTrade `at-mongo-ng` query builder. The direct driver dependency overrides the 5.3.1 version used to build the current AlphaTrade NG snapshot; the resolved driver, core and BSON artifacts must remain version-aligned. `ATMongoWhereQuery` handles shared comparisons and quoted-text predicates; driver BSON filters handle existence and exclusion. The adapter creates MongoDB clients directly: `ATMongoDao` is bound to one database and exposes raw access outside its write guard, while `ATMongoConfig` can override URI pool/socket options. Neither is used as a generic session client factory.
+The service targets Java 25 and uses Javalin 7.2.4, MongoDB sync driver 5.14.0, Jackson 2.19.4, Commons Configuration 2.15.1 with Commons BeanUtils 1.11.0 for properties-file loading, and Logback 1.6.6. The direct driver dependency pins the server's MongoDB version; the resolved driver, core and BSON artifacts must remain version-aligned. `JsonHelper` builds every predicate with the driver's `Filters`; text predicates quote user input with `Pattern.quote` and match case-insensitively. The server creates its MongoDB clients directly.
 
-The `1.0-SNAPSHOT` AlphaTrade dependencies and their parent metadata must be installed locally for development. Releases require immutable versions published to an approved internal registry and a recorded source revision. No Kafka or AlphaTrade services are required.
+The server has no AlphaTrade build or runtime dependency; all dependencies resolve from Maven Central. No Kafka or AlphaTrade services are required.
 
 ## HTTP and safety boundaries
 
@@ -67,7 +67,9 @@ cd ..
 docker build -f da-server-ng/Dockerfile -t da-server-ng:1.0.0-SNAPSHOT .
 ```
 
-The image includes the NG frontend and Java 21 runtime. Its command reads the existing legacy properties file first and then `container.properties`, so the image's listener, static-file paths and allowed-target setting take precedence. `JAVA_TOOL_OPTIONS` supplies `da.mongo.allowed.hosts`; the checked-in Compose file sets it to `mongo-db:27017`. It explicitly enables writes with `dataape.write.enabled=true`, sets `dataape.write.origin=http://ape.lan.isoplane.com`, and opts into the non-atomic `dataape.delete.mode=archive-first` for the standalone deployment. These system properties override the corresponding properties-file settings. Set the write flag to `false` and recreate the container to return to read-only mode. Adjust targets and origin without putting credentials in the Compose file. The existing Data-Ape configuration mount is read-only; this does not restrict MongoDB writes. Logs go to container output.
+The image includes the NG frontend and the Eclipse Temurin `25.0.5_8` Java 25 runtime. Its command reads the existing legacy properties file first and then `container.properties`, so the image's listener, static-file paths and allowed-target setting take precedence. `JAVA_TOOL_OPTIONS` supplies `da.mongo.allowed.hosts`; the checked-in Compose file sets it to `mongo-db:27017`. It explicitly enables writes with `dataape.write.enabled=true`, sets `dataape.write.origin=http://ape.lan.isoplane.com`, and opts into the non-atomic `dataape.delete.mode=archive-first` for the standalone deployment. These system properties override the corresponding properties-file settings. Set the write flag to `false` and recreate the container to return to read-only mode. Adjust targets and origin without putting credentials in the Compose file. The existing Data-Ape configuration mount is read-only; this does not restrict MongoDB writes. Logs go to container output.
+
+The Compose service is capped at 1 GiB. JVM options set the heap to 128 MiB initial / 768 MiB maximum, enable compact object headers, request periodic G1 collection every five minutes, and cap direct memory at 64 MiB. Keep the maximum heap below the container memory limit to leave room for metaspace, thread stacks, direct buffers and other native allocations. Validate any changes against observed workload and container memory, rather than copying the gateway's larger limits.
 
 Compose does not publish a host port. Caddy reaches the service on `alphatrade_net` at its **container port** 4100, not the former host port 888. Add this site to the Caddy stack and redeploy that stack:
 
@@ -96,7 +98,7 @@ The retained legacy container currently has restart policy `no`; set the desired
 
 ## Build and verification
 
-With the NG development artifacts installed and a JDK 21 or later:
+With JDK 25 or later:
 
 ```bash
 cd da-server-ng

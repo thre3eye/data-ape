@@ -13,7 +13,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.isoplane.at.mongodb.ng.query.ATMongoWhereQuery;
 import com.mongodb.client.model.Filters;
 
 /**
@@ -88,20 +87,18 @@ public final class JsonHelper {
                         Pattern.compile("^(?!.*" + Pattern.quote(text) + ").*", Pattern.CASE_INSENSITIVE)));
                 continue;
             }
-            ATMongoWhereQuery predicate = new ATMongoWhereQuery();
-            switch (op) {
-                case "gt" -> predicate.gt(field, value);
-                case "gte" -> predicate.gte(field, value);
-                case "eq" -> predicate.eq(field, value);
-                case "ne" -> predicate.ne(field, value);
-                case "lte" -> predicate.lte(field, value);
-                case "lt" -> predicate.lt(field, value);
-                case "stw" -> predicate.startsWith(field, text(value));
-                case "ctn" -> predicate.contains(field, text(value));
-                case "endw" -> predicate.endsWith(field, text(value));
+            predicates.add(switch (op) {
+                case "gt" -> Filters.gt(field, value);
+                case "gte" -> Filters.gte(field, value);
+                case "eq" -> Filters.eq(field, value);
+                case "ne" -> Filters.ne(field, value);
+                case "lte" -> Filters.lte(field, value);
+                case "lt" -> Filters.lt(field, value);
+                case "stw" -> textRegex(field, "^" + Pattern.quote(text(value)));
+                case "ctn" -> textRegex(field, ".*" + Pattern.quote(text(value)) + ".*");
+                case "endw" -> textRegex(field, Pattern.quote(text(value)) + "$");
                 default -> throw new IllegalArgumentException("unsupported select operator");
-            }
-            predicates.add(predicate.getQuery());
+            });
         }
 
         Document sort = new Document();
@@ -183,6 +180,14 @@ public final class JsonHelper {
             return value.numberValue();
         }
         throw new IllegalArgumentException("select value must be a scalar");
+    }
+
+    /**
+     * Builds a case-insensitive text predicate. Callers quote user input with {@link Pattern#quote(String)}
+     * so search terms match literally and cannot inject regex syntax.
+     */
+    private static Bson textRegex(String field, String regex) {
+        return Filters.regex(field, Pattern.compile(regex, Pattern.CASE_INSENSITIVE));
     }
 
     private static String text(Object value) {

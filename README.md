@@ -16,11 +16,11 @@ Please note: This tool may expose your data due to improper configuration or bug
 
 Data-Ape currently supports MongoDB. See the [frontend README](da-frontend-ng/README.md) for development and frontend tests and the [server README](da-server-ng/README.md) for configuration, backend tests, container builds, and deployment limitations. The legacy modules are available in Git history.
 
-The backend requires JDK 21 or later and locally installed AlphaTrade NG artifacts. The existing development container supplies JDK 17; configure a JDK 21+ for backend work. The frontend requires a Node version supported by Angular 13.
+The backend requires JDK 25 or later; its dependencies resolve from Maven Central. The development container supplies JDK 25 and Node 16 (the newest Node line supported by Angular 13).
 
 For the VS Code server launch configuration, create `.local/`, copy `da-server-ng/dev.properties.example` to `.local/server.properties`, and adjust the allowed MongoDB host. `.local/` is Git-ignored for machine-specific files; keep credentials out of tracked configuration. The frontend development server proxies API requests to the local backend.
 
-The checked-in [Compose configuration](docker-compose.yml) describes the existing LAN deployment and its external configuration mount. It enables writes and non-atomic archive-first deletion; read the server README before using it. The application is not suitable for exposure to untrusted users.
+The checked-in [Compose configuration](docker-compose.yml) describes the existing LAN deployment and its external configuration mount. It limits the server container to 1 GiB and configures a 768 MiB Java heap. It enables writes and non-atomic archive-first deletion; read the server README before using it. The application is not suitable for exposure to untrusted users.
 
 Missing features can be added if there is interest and related submissions are welcome.
 

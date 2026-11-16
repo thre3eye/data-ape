@@ -1,8 +1,8 @@
-# See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.245.0/containers/java/.devcontainer/base.Dockerfile
+# See here for image contents: https://github.com/devcontainers/images/tree/main/src/java
 
-# [Choice] Java version (use -bullseye variants on local arm64/Apple Silicon): 11, 17, 11-bullseye, 17-bullseye, 11-buster, 17-buster
-ARG VARIANT="17-bullseye"
-FROM mcr.microsoft.com/vscode/devcontainers/java:0-${VARIANT}
+# Java 25 matches da-server-ng's maven.compiler.release and the AlphaTrade devcontainer.
+ARG VARIANT="25-bookworm"
+FROM mcr.microsoft.com/devcontainers/java:3-${VARIANT}
 
 # [Option] Install Maven
 ARG INSTALL_MAVEN="false"
@@ -13,7 +13,7 @@ ARG GRADLE_VERSION=""
 RUN if [ "${INSTALL_MAVEN}" = "true" ]; then su vscode -c "umask 0002 && . /usr/local/sdkman/bin/sdkman-init.sh && sdk install maven \"${MAVEN_VERSION}\""; fi \
     && if [ "${INSTALL_GRADLE}" = "true" ]; then su vscode -c "umask 0002 && . /usr/local/sdkman/bin/sdkman-init.sh && sdk install gradle \"${GRADLE_VERSION}\""; fi
 
-# [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
+# [Choice] Node.js version: none, lts/*, 16, ... (keep 16: Angular 13 supports Node 12.20/14.15/16.10 only)
 ARG NODE_VERSION="none"
 RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
 

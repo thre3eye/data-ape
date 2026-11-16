@@ -5,14 +5,12 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"args": {
-			// Update the VARIANT arg to pick a Java version: 11, 17
-			// Append -bullseye or -buster to pin to an OS version.
-			// Use the -bullseye variants on local arm64/Apple Silicon.
-			"VARIANT": "17-bullseye",
+			// Java 25 is required by da-server-ng (maven.compiler.release 25).
+			"VARIANT": "25-bookworm",
 			// Options
 			"INSTALL_MAVEN": "true",
 			"INSTALL_GRADLE": "false",
-			"NODE_VERSION": "16"
+			"NODE_VERSION": "16" // Angular 13 frontend; do not use Node > 16
 		}
 	},
 

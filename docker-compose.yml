@@ -4,9 +4,10 @@ services:
     container_name: data-ape-ng
     image: da-server-ng:1.0.0-SNAPSHOT
     restart: always
+    mem_limit: 1g
     environment:
       TZ: America/New_York
-      JAVA_TOOL_OPTIONS: "-Dda.mongo.allowed.hosts=mongo-db:27017 -Ddataape.write.enabled=true -Ddataape.write.origin=http://ape.lan.isoplane.com -Ddataape.delete.mode=archive-first"
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx768m -XX:+UseCompactObjectHeaders -XX:G1PeriodicGCInterval=300000 -XX:MaxDirectMemorySize=64m -Dda.mongo.allowed.hosts=mongo-db:27017 -Ddataape.write.enabled=true -Ddataape.write.origin=http://ape.lan.isoplane.com -Ddataape.delete.mode=archive-first"
     volumes:
       - /mnt/Pool_A/smbshare/docker/data-ape:/docker-data/data-ape:ro
     labels:
